@@ -31,6 +31,7 @@ tailwind.config={theme:{extend:{
   .eyebrow{font-family:'Oswald',sans-serif;letter-spacing:.32em;text-transform:uppercase}
   /* hero reel */
   .reel{position:absolute;inset:0;overflow:hidden}
+  .hv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity 1.6s ease;transform:scale(1.04);animation:kb 12s ease-in-out infinite alternate}
   .slide.on{opacity:1}
   @keyframes kb{from{transform:scale(1.04)}to{transform:scale(1.16)}}
@@ -99,9 +100,9 @@ tailwind.config={theme:{extend:{
 <!-- HERO -->
 <section id="top" class="relative min-h-[100svh] flex items-center">
   <div class="reel">
-    <div class="slide on" style="background-image:url('assets/hero-01.jpg')"></div>
-    <div class="slide" style="background-image:url('assets/hero-02.jpg')"></div>
-    <div class="slide" style="background-image:url('assets/hero-03.jpg')"></div>
+    <video class="hv" autoplay muted loop playsinline preload="auto" poster="assets/hero-01.jpg">
+      <source src="assets/hero.mp4" type="video/mp4">
+    </video>
   </div>
   <div class="vscrim"></div><div class="vscrim2"></div>
   <div class="spot" id="heroSpot"></div>
