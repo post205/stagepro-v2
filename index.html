@@ -77,6 +77,23 @@ tailwind.config={theme:{extend:{
   @keyframes sweep{0%{transform:rotate(-20deg)}50%{transform:rotate(20deg)}100%{transform:rotate(-20deg)}}
   .actglow{position:absolute;width:50vw;height:50vw;border-radius:50%;filter:blur(130px);pointer-events:none;background:radial-gradient(circle, rgba(46,139,240,.18), transparent 60%);left:var(--mx,50%);top:var(--my,50%);transform:translate(-50%,-50%);z-index:1}
   .feelbtn{font-family:'Space Grotesk',sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.12em}
+  /* Act I — sound play/pause */
+  .sound-btn{position:relative;width:64px;height:64px;border-radius:50%;background:#2e8bf0;color:#fff;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s,background .15s}
+  .sound-btn:hover{transform:scale(1.06);background:#1f7ae0}
+  .sound-btn.playing{background:#11151e;color:#7cc0ff;box-shadow:inset 0 0 0 1px #2e8bf0}
+  .sound-btn::before{content:"";position:absolute;inset:0;border-radius:50%;animation:spulse 2.2s ease-out infinite;pointer-events:none}
+  .sound-btn.playing::before{animation:none}
+  @keyframes spulse{0%{box-shadow:0 0 0 0 rgba(46,139,240,.55)}100%{box-shadow:0 0 0 16px rgba(46,139,240,0)}}
+  .sound-ico{font-size:18px;line-height:1;pointer-events:none}
+  .eq.live i{animation:none;transition:height .08s linear}
+  /* Act II — chiaroscuro: light carved from shadow */
+  .chiaro{position:absolute;inset:0;overflow:hidden;z-index:0}
+  .chiaro-shadow,.chiaro-light{position:absolute;inset:0;background:url('assets/hero-02.jpg') center/cover no-repeat}
+  .chiaro-shadow{filter:brightness(.10) grayscale(.45) contrast(1.12)}
+  .chiaro-light{filter:brightness(1.14) contrast(1.12) saturate(1.05);-webkit-mask-image:radial-gradient(circle 300px at var(--mx,50%) var(--my,46%),#000 0%,rgba(0,0,0,.55) 42%,transparent 70%);mask-image:radial-gradient(circle 300px at var(--mx,50%) var(--my,46%),#000 0%,rgba(0,0,0,.55) 42%,transparent 70%)}
+  #actLight .act-in{text-shadow:0 2px 28px rgba(0,0,0,.9),0 0 4px rgba(0,0,0,.8)}
+  @media (max-width:900px){.chiaro-light{-webkit-mask-image:radial-gradient(circle 170px at var(--mx,50%) var(--my,46%),#000 0%,rgba(0,0,0,.55) 42%,transparent 72%);mask-image:radial-gradient(circle 170px at var(--mx,50%) var(--my,46%),#000 0%,rgba(0,0,0,.55) 42%,transparent 72%)}}
+  @media (prefers-reduced-motion:reduce){.sound-btn::before{animation:none}}
 
   /* ============================================================
      FORM-CHAT — conversational quote, ported from the canonical
@@ -227,10 +244,16 @@ tailwind.config={theme:{extend:{
       <p class="eyebrow text-[#b9bcc2] text-xs mb-4">Act I &middot; Sound</p>
       <h3 class="anton uppercase text-white text-6xl sm:text-8xl leading-[0.85]">Move the<br><span class="text-brand">whole room.</span></h3>
       <p class="mt-5 text-mute max-w-md">Premium indoor, concert-grade outdoor, fixed-install. Skip the spec sheet. Feel it.</p>
-      <button id="feelBtn" class="feelbtn mt-7 inline-flex items-center gap-3 rounded-full bg-brand text-white font-semibold px-8 py-4 glowbtn hover:bg-[#1f7ae0] transition">
-        <span id="feelIcon">&#9658;</span> Feel the drop
-      </button>
-      <p class="text-xs text-mute mt-3">Turn your sound on.</p>
+      <div class="mt-7 flex items-center gap-4">
+        <button id="soundBtn" type="button" class="sound-btn" aria-label="Play the sound">
+          <span class="sound-ico" id="soundIco">&#9654;</span>
+        </button>
+        <div>
+          <div id="soundLabel" class="disp uppercase tracking-wider text-white text-sm">Press play</div>
+          <div class="text-xs text-mute mt-0.5">Real audio. Tap again to stop.</div>
+        </div>
+      </div>
+      <audio id="spAudio" src="assets/sound.mp3" loop preload="none"></audio>
     </div>
     <div class="reveal flex justify-center lg:justify-end" data-d="1">
       <div class="eq" id="eq">
@@ -242,18 +265,15 @@ tailwind.config={theme:{extend:{
 
 <!-- ACT II — LIGHT -->
 <section class="act bg-ink" id="actLight">
-  <div class="act-word" aria-hidden="true">Light</div>
-  <div class="beams" id="beams">
-    <div class="beam" style="left:18%;background:linear-gradient(#2e8bf0,transparent);animation-delay:0s"></div>
-    <div class="beam" style="left:40%;background:linear-gradient(#7cc0ff,transparent);animation-delay:-1.5s"></div>
-    <div class="beam" style="left:62%;background:linear-gradient(#f5b81f,transparent);animation-delay:-3s"></div>
-    <div class="beam" style="left:82%;background:linear-gradient(#2e8bf0,transparent);animation-delay:-4.5s"></div>
+  <div class="chiaro" id="chiaro">
+    <div class="chiaro-shadow"></div>
+    <div class="chiaro-light" id="chiaroLight"></div>
   </div>
-  <div class="actglow" id="lightGlow"></div>
+  <div class="act-word" aria-hidden="true">Light</div>
   <div class="act-in max-w-7xl mx-auto px-5 sm:px-8 w-full text-center">
     <p class="eyebrow text-[#b9bcc2] text-xs mb-4 reveal">Act II &middot; Light</p>
-    <h3 class="anton uppercase text-white text-6xl sm:text-9xl leading-[0.85] reveal" data-d="1">Light that<br><span class="text-brand">follows you.</span></h3>
-    <p class="mt-6 text-mute max-w-md mx-auto reveal" data-d="2">High-end moving luminaires, LED, intelligent and architectural. Move your cursor across the rig.</p>
+    <h3 class="anton uppercase text-white text-6xl sm:text-9xl leading-[0.85] reveal" data-d="1">Light is<br><span class="text-brand">shadow.</span></h3>
+    <p class="mt-6 text-[#c9d2de] max-w-md mx-auto reveal" data-d="2">Light is nothing without the dark it carves. Move your cursor, and watch the shadow move with it.</p>
   </div>
 </section>
 
@@ -464,18 +484,33 @@ tailwind.config={theme:{extend:{
   // cursor-follow light (hero spotlight + light act glow)
   function track(zone,target){zone.addEventListener('pointermove',function(e){var r=zone.getBoundingClientRect();target.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');target.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%')})}
   var heroSpot=document.getElementById('heroSpot'),topSec=document.getElementById('top'); if(heroSpot&&topSec)track(topSec,heroSpot);
-  var lightGlow=document.getElementById('lightGlow'),actLight=document.getElementById('actLight'); if(lightGlow&&actLight)track(actLight,lightGlow);
-  // Feel the drop — synthesized sub-bass swell (opt-in, no audio file)
-  var feelBtn=document.getElementById('feelBtn'),eq=document.getElementById('eq'),feelIcon=document.getElementById('feelIcon'),actx=null;
-  if(feelBtn)feelBtn.addEventListener('click',function(){
-    try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();var t=actx.currentTime;
-      var o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.setValueAtTime(120,t);o.frequency.exponentialRampToValueAtTime(38,t+1.4);
-      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.85,t+.05);g.gain.exponentialRampToValueAtTime(.0001,t+1.8);
-      o.connect(g).connect(actx.destination);o.start(t);o.stop(t+1.9);
-      var k=actx.createOscillator(),kg=actx.createGain();k.frequency.setValueAtTime(160,t);k.frequency.exponentialRampToValueAtTime(50,t+.12);kg.gain.setValueAtTime(.6,t);kg.gain.exponentialRampToValueAtTime(.0001,t+.18);k.connect(kg).connect(actx.destination);k.start(t);k.stop(t+.2);
-      if(eq)eq.classList.add('hot');if(feelIcon)feelIcon.innerHTML='&#9726;';setTimeout(function(){if(eq)eq.classList.remove('hot');if(feelIcon)feelIcon.innerHTML='&#9658;'},2000);
-    }catch(e){}
-  });
+  // ACT II — chiaroscuro: the cursor is a light that carves the scene out of shadow.
+  var chiaroLight=document.getElementById('chiaroLight'),actLight=document.getElementById('actLight');
+  if(chiaroLight&&actLight){
+    track(actLight,chiaroLight);
+    // No cursor (touch): drift the light so the shadow still moves.
+    if(window.matchMedia('(hover:none)').matches){
+      (function drift(ts){var p=(ts||0)/1000;chiaroLight.style.setProperty('--mx',(50+38*Math.sin(p*0.55))+'%');chiaroLight.style.setProperty('--my',(46+20*Math.sin(p*0.9+1))+'%');requestAnimationFrame(drift)})(0);
+    }
+  }
+  // ACT I — real audio (royalty-free), play/pause, an AnalyserNode drives the equalizer.
+  var soundBtn=document.getElementById('soundBtn'),spAudio=document.getElementById('spAudio'),eq=document.getElementById('eq'),soundIco=document.getElementById('soundIco'),soundLabel=document.getElementById('soundLabel');
+  var aCtx=null,analyser=null,bars=eq?[].slice.call(eq.querySelectorAll('i')):[],raf=null;
+  function eqFrame(){
+    if(analyser){var data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);var step=Math.max(1,Math.floor(data.length/(bars.length+2)));for(var i=0;i<bars.length;i++){var v=data[(i+1)*step]||0;bars[i].style.height=Math.max(8,(v/255)*100)+'%';}}
+    raf=requestAnimationFrame(eqFrame);
+  }
+  function playSound(){
+    if(!aCtx){try{aCtx=new (window.AudioContext||window.webkitAudioContext)();var srcN=aCtx.createMediaElementSource(spAudio);analyser=aCtx.createAnalyser();analyser.fftSize=64;srcN.connect(analyser);analyser.connect(aCtx.destination);}catch(e){}}
+    if(aCtx&&aCtx.state==='suspended'){aCtx.resume();}
+    spAudio.play().then(function(){soundBtn.classList.add('playing');eq.classList.add('live');soundIco.innerHTML='&#10074;&#10074;';soundLabel.textContent='Playing';if(!raf)eqFrame();}).catch(function(){});
+  }
+  function stopSound(){
+    spAudio.pause();soundBtn.classList.remove('playing');eq.classList.remove('live');soundIco.innerHTML='&#9654;';soundLabel.textContent='Press play';
+    if(raf){cancelAnimationFrame(raf);raf=null;}
+    bars.forEach(function(b){b.style.height='';});
+  }
+  if(soundBtn&&spAudio){soundBtn.addEventListener('click',function(){spAudio.paused?playSound():stopSound();});}
 </script>
 
 <!-- ============================================================
