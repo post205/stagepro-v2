@@ -77,6 +77,95 @@ tailwind.config={theme:{extend:{
   @keyframes sweep{0%{transform:rotate(-20deg)}50%{transform:rotate(20deg)}100%{transform:rotate(-20deg)}}
   .actglow{position:absolute;width:50vw;height:50vw;border-radius:50%;filter:blur(130px);pointer-events:none;background:radial-gradient(circle, rgba(46,139,240,.18), transparent 60%);left:var(--mx,50%);top:var(--my,50%);transform:translate(-50%,-50%);z-index:1}
   .feelbtn{font-family:'Space Grotesk',sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.12em}
+
+  /* ============================================================
+     FORM-CHAT — conversational quote, ported from the canonical
+     all-stars build. Palette retuned to the StagePro dark/brand
+     system (no red). One breakpoint: ≤768 phone (focus sheet +
+     sticky bar) · ≥769 desktop dock. Off-screen helper class.
+     ============================================================ */
+  .sp-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+
+  /* shell */
+  .sp-chat{background:rgba(11,15,22,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid #1c2533;border-radius:18px;display:flex;flex-direction:column;height:520px;box-shadow:0 30px 72px rgba(0,0,0,.6);overflow:hidden}
+  .sp-chat-log{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent}
+  .sp-chat-log::-webkit-scrollbar{width:6px}
+  .sp-chat-log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+  .sp-chat-composer{flex-shrink:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid #1c2533;background:rgba(6,8,12,.5)}
+  .sp-chat-composer:empty{display:none}
+  .sp-chat-composer .cinput-wrap{padding-left:0}
+
+  /* messages */
+  .cmsg{display:flex;gap:8px;align-items:flex-end;animation:cin .42s cubic-bezier(.34,1.56,.64,1)}
+  .cmsg.bot{align-self:flex-start;max-width:92%}
+  .cmsg.user{flex-direction:row-reverse;align-self:flex-end;max-width:84%}
+  .cav{width:26px;height:26px;border-radius:50%;background:#2e8bf0;color:#fff;display:grid;place-items:center;flex-shrink:0}
+  .cav svg{width:14px;height:14px;transform:translateY(-1px)}
+  .cbub{padding:9px 13px;border-radius:16px;font-size:14.5px;line-height:1.42;background:#10151e;color:#eef2f7;word-wrap:break-word}
+  .cmsg.bot .cbub{border-bottom-left-radius:5px}
+  .cmsg.user .cbub{background:rgba(46,139,240,.22);border:1px solid rgba(46,139,240,.45);color:#eaf2fd;border-bottom-right-radius:5px}
+  .cmsg.followup .cav{visibility:hidden}
+  @keyframes cin{0%{opacity:0;transform:translateY(8px) scale(.93)}60%{opacity:1;transform:translateY(-2px) scale(1.02)}100%{opacity:1;transform:none}}
+
+  /* typing + stream cursor */
+  .ctype{display:flex;gap:8px;align-items:flex-end;align-self:flex-start;animation:cin .3s ease}
+  .ctype-b{background:#10151e;border-radius:16px;border-bottom-left-radius:5px;padding:12px 13px;display:inline-flex;gap:4px;align-items:center}
+  .ctype-d{width:6px;height:6px;border-radius:50%;background:#7cc0ff;opacity:.6;animation:cbounce 1.3s ease-in-out infinite}
+  .ctype-d:nth-child(2){animation-delay:.2s}.ctype-d:nth-child(3){animation-delay:.36s}
+  @keyframes cbounce{0%,60%,100%{opacity:.4;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+  .ccur{display:inline-block;width:2px;height:1em;background:#7cc0ff;vertical-align:-2px;margin-left:1px;animation:cblink 1s step-end infinite}
+  @keyframes cblink{50%{opacity:0}}
+
+  /* chips */
+  .cchips{display:flex;flex-wrap:wrap;gap:8px;padding-left:34px;animation:cin .3s ease}
+  .cchip{font:inherit;font-size:13px;font-weight:600;background:transparent;border:1px solid #33425a;color:#eef2f7;border-radius:16px;padding:8px 14px;cursor:pointer;transition:background .15s,border-color .15s,color .15s;opacity:0;transform:translateY(6px);animation:chipin .36s cubic-bezier(.34,1.56,.64,1) forwards;animation-delay:calc(var(--i,0) * 38ms + 40ms)}
+  @keyframes chipin{to{opacity:1;transform:none}}
+  .cchip:hover,.cchip.sel{background:#2e8bf0;border-color:#2e8bf0;color:#fff}
+
+  /* input row — 16px at ALL widths (iOS auto-zoom guard) */
+  .cinput-wrap{display:flex;gap:8px;padding-left:34px;animation:cin .3s ease}
+  .cinput{flex:1;min-width:0;background:rgba(6,8,12,.6);border:1px solid #33425a;color:#fff;border-radius:12px;padding:11px 13px;font:inherit;font-size:16px;outline:none;transition:border-color .15s}
+  .cinput::placeholder{color:#8b97a8}
+  .cinput:focus{border-color:#2e8bf0}
+  .csend{background:#2e8bf0;color:#fff;border:0;border-radius:12px;padding:0 17px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;font-family:'Space Grotesk',sans-serif}
+  .csend:hover{filter:brightness(1.07)}
+  .cdone{align-self:flex-start;padding-left:34px;margin-top:2px}
+  .cdone a{display:inline-flex;align-items:center;gap:7px;color:#fff;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;background:#2e8bf0;padding:10px 16px;border-radius:999px;font-family:'Space Grotesk',sans-serif}
+
+  /* mobile focus sheet (≤768): full-screen bottom sheet, keyboard-safe */
+  .sp-chat-min{display:none}
+  @media(max-width:768px){
+    .sp-chat.is-focus{position:fixed;inset:0;top:auto;left:0;right:0;bottom:0;height:88dvh;width:100%;max-width:none;margin:0;border:0;border-radius:20px 20px 0 0;z-index:300;background:#0b0f16;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 -18px 44px rgba(0,0,0,.6);display:flex;flex-direction:column}
+    .sp-chat.is-focus .sp-chat-log{flex:1;min-height:0;overflow-y:auto;padding-top:20px}
+    .sp-chat.is-focus .sp-chat-composer{flex-shrink:0}
+    .sp-chat.is-focus .sp-chat-min{display:grid;place-items:center;position:absolute;top:10px;right:12px;z-index:6;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24);color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .sp-chat.is-focus .sp-chat-min:active{background:rgba(255,255,255,.28)}
+    .sp-chat.is-focus .sp-chat-min svg{width:20px;height:20px}
+    html.chat-locked,html.chat-locked body{overflow:hidden}
+    html.chat-locked::before{content:"";position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:299}
+    html.chat-locked .sp-chat-note{display:none}
+    .cinput,.sp-chat-composer .cinput{font-size:16px}
+  }
+
+  /* desktop dock (≥769): relocated to <body> so it escapes the transformed hero */
+  @media(min-width:769px){
+    .sp-chat.is-docked{position:fixed;right:24px;bottom:24px;top:auto;left:auto;width:380px;max-width:calc(100vw - 48px);height:auto;max-height:min(560px,calc(100vh - 110px));z-index:200;margin:0;box-shadow:0 24px 64px rgba(0,0,0,.55),0 4px 16px rgba(0,0,0,.4);animation:spx-dock-in .26s ease}
+    .sp-chat.is-docked .sp-chat-log{flex:1;min-height:0;overflow-y:auto}
+    .sp-chat.is-docked .sp-chat-composer{flex-shrink:0}
+  }
+  @keyframes spx-dock-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @media(prefers-reduced-motion:reduce){.sp-chat.is-docked{animation:none}}
+
+  /* mobile sticky bar (≤768): direct child of <body> */
+  .sp-reserve{position:fixed;left:0;right:0;bottom:0;width:100%;box-sizing:border-box;z-index:150;display:none;align-items:center;gap:12px;padding:13px 18px calc(13px + env(safe-area-inset-bottom,0px));border:0;border-top:1px solid rgba(124,192,255,.25);background:#2e8bf0;color:#fff;text-align:left;cursor:pointer;box-shadow:0 -8px 28px rgba(0,0,0,.4);transform:translateY(110%);transition:transform .32s cubic-bezier(.22,1,.36,1);font-family:inherit;-webkit-tap-highlight-color:transparent}
+  @media(max-width:768px){ .sp-reserve{display:flex} }
+  .sp-reserve.show{transform:translateY(0)}
+  .sp-reserve-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .sp-reserve-t{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.1}
+  .sp-reserve-s{font-size:12px;font-weight:500;color:rgba(255,255,255,.85);line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sp-reserve-ic{flex:none;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center}
+  .sp-reserve-ic svg{width:20px;height:20px}
+  @media(prefers-reduced-motion:reduce){.sp-reserve{transition:none}}
 </style>
 </head>
 <body class="bg-ink text-[#eef2f7] font-body antialiased">
@@ -93,7 +182,7 @@ tailwind.config={theme:{extend:{
       <a href="#why" class="hover:text-white transition">Why Us</a>
       <a href="#contact" class="hover:text-white transition">Contact</a>
     </nav>
-    <a href="#quote" class="inline-flex items-center rounded-full bg-brand text-white font-semibold text-sm px-5 py-2.5 glowbtn hover:bg-[#1f7ae0] transition">Get a Quote</a>
+    <a href="#quote" class="inline-flex items-center rounded-full bg-brand text-white font-semibold text-sm px-5 py-2.5 glowbtn hover:bg-[#1f7ae0] transition">Let's build it</a>
   </div>
 </header>
 
@@ -117,7 +206,7 @@ tailwind.config={theme:{extend:{
     </h1>
     <p class="mt-7 text-lg text-[#c9d2de] max-w-xl reveal in" data-d="4">Tour-grade staging, audio, lighting, and LED video. Crew, logistics, and the full show, delivered anywhere in the Philippines.</p>
     <div class="mt-9 flex flex-wrap gap-3 reveal in" data-d="5">
-      <a href="#quote" class="inline-flex items-center gap-2 rounded-full bg-brand text-white font-semibold px-8 py-4 glowbtn hover:bg-[#1f7ae0] transition">Get a Free Quote <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <a href="#quote" class="inline-flex items-center gap-2 rounded-full bg-brand text-white font-semibold px-8 py-4 glowbtn hover:bg-[#1f7ae0] transition">Let's build it <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
       <a href="#work" class="inline-flex items-center gap-2 rounded-full border border-[#33425a] text-white font-semibold px-8 py-4 hover:bg-white/5 transition">Watch the Build</a>
     </div>
   </div>
@@ -285,31 +374,38 @@ tailwind.config={theme:{extend:{
   <div class="absolute inset-0 bg-ink/92"></div>
   <div class="relative max-w-3xl mx-auto px-5 sm:px-8 py-24 sm:py-32">
     <div class="text-center reveal">
-      <p class="eyebrow text-brand text-xs mb-4">Get a quote</p>
-      <h2 class="anton uppercase text-5xl sm:text-6xl text-white leading-[0.9]">Tell us about<br>your event</h2>
-      <p class="mt-5 text-mute">Share the date and venue and we will size the right package. No spam, no pushy calls, just a real reply, usually within one business day.</p>
+      <p class="eyebrow text-brand text-xs mb-4">Start the build</p>
+      <h2 class="anton uppercase text-5xl sm:text-6xl text-white leading-[0.9]">Let's build<br>your event</h2>
+      <p class="mt-5 text-mute">Answer a few quick questions and we will size the right package. No spam, no pushy calls, just a real reply, usually within one business day.</p>
     </div>
-    <form name="quote" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="qf" class="mt-10 rounded-2xl border hair bg-surface/90 backdrop-blur p-6 sm:p-8 grid sm:grid-cols-2 gap-4 reveal" data-d="1">
-      <input type="hidden" name="form-name" value="quote"><p class="hidden"><label>Skip: <input name="bot-field"></label></p>
-      <div><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="n">Your name</label><input id="n" name="name" required class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"></div>
-      <div><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="c">Company / organizer</label><input id="c" name="company" class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"></div>
-      <div><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="e">Email</label><input id="e" name="email" type="email" required class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"></div>
-      <div><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="p">Mobile</label><input id="p" name="phone" type="tel" required placeholder="09xx xxx xxxx" class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"></div>
-      <div><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="t">Event type</label><select id="t" name="event_type" class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"><option>Concert / Entertainment</option><option>Corporate</option><option>Sports</option><option>Exhibition</option><option>Other</option></select></div>
-      <div><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="d">Event date</label><input id="d" name="event_date" type="date" class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"></div>
-      <div><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="v">Venue / location</label><input id="v" name="venue" placeholder="City or venue" class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"></div>
-      <div><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="a">Expected attendance</label><select id="a" name="attendance" class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"><option>Under 200</option><option>200 – 1,000</option><option>1,000 – 5,000</option><option>5,000 – 20,000</option><option>20,000+</option></select></div>
-      <div class="sm:col-span-2"><label class="block text-xs uppercase tracking-wider text-mute mb-1.5" for="m">Anything else?</label><textarea id="m" name="message" rows="3" class="w-full rounded-lg bg-ink border border-line px-3.5 py-3 text-white outline-none focus:border-brand"></textarea></div>
-      <div class="sm:col-span-2 flex flex-col sm:flex-row gap-3 mt-1">
-        <button type="submit" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 rounded-full bg-brand text-white font-semibold px-8 py-3.5 glowbtn hover:bg-[#1f7ae0] transition">Send my quote request</button>
-        <a href="tel:+6322117600" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 rounded-full border border-[#33425a] text-white font-semibold px-6 py-3.5 hover:bg-white/5 transition">Call (02) 8211 7600</a>
+
+    <!-- RSVP-style conversational quote (replaces the static form). -->
+    <div class="mt-10 reveal" data-d="1">
+      <div class="sp-chat" id="sp-chat">
+        <!-- Minimize: shown only on mobile when the sheet takes over the screen. -->
+        <button type="button" class="sp-chat-min" id="sp-chat-min" aria-label="Minimize chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="sp-chat-log" id="sp-chat-log" aria-label="Tell us about your event"></div>
+        <!-- Pinned composer: the active answer field mounts here, always in view. -->
+        <div class="sp-chat-composer" id="sp-chat-composer"></div>
+        <!-- SR-only live region for completed bot messages. -->
+        <div id="sp-chat-sr" class="sp-hp" aria-live="polite" aria-atomic="true"></div>
+        <!-- Cheap client guard: honeypot. Off-screen; a human never sees it, bots fill it. -->
+        <input type="text" name="company_url" id="sp-hp" class="sp-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
       </div>
-      <p class="sm:col-span-2 text-xs text-mute text-center mt-1">We only use your details to reply about your event. Nothing else.</p>
-    </form>
-    <div id="qok" class="hidden mt-10 rounded-2xl border border-brand/50 bg-[#10243f] p-8 text-center">
-      <div class="anton uppercase text-3xl text-white">Got it. Thank you.</div>
-      <p class="mt-3 text-[#bcd2f0]">Your request reached the StagePro team. We will reply, usually within one business day, to size the right package.</p>
+      <p class="sp-chat-note mt-3 text-xs text-mute text-center">About a minute. We only use your details to reply about your event.</p>
     </div>
+
+    <!-- Static form for Netlify build detection. The AJAX posts form-name=quote with
+         these exact field names. Hidden — the chat is the real UI. -->
+    <form name="quote" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="quote">
+      <p class="hidden"><label>Skip: <input name="bot-field"></label></p>
+      <input name="name"><input name="email" type="email"><input name="phone" type="tel">
+      <input name="event_type"><input name="event_date"><input name="venue">
+      <input name="attendance"><input name="needs"><textarea name="message"></textarea>
+    </form>
   </div>
 </section>
 
@@ -322,6 +418,16 @@ tailwind.config={theme:{extend:{
   </div>
   <div class="max-w-7xl mx-auto px-5 sm:px-8 mt-12 pt-6 border-t hair flex flex-wrap items-center justify-between gap-3 text-xs text-mute"><div>&copy; <span id="yr"></span> StagePro, Inc. All rights reserved.</div><a href="#top" class="hover:text-white transition">Back to top &uarr;</a></div>
 </footer>
+
+<!-- Mobile-only sticky CTA (controller below). Tapping opens the quote chat sheet.
+     Direct child of <body> so position:fixed isn't trapped by a transformed ancestor. -->
+<button type="button" class="sp-reserve" id="sp-reserve" aria-label="Tell us about your event">
+  <span class="sp-reserve-tx">
+    <span class="sp-reserve-t">Let's build your event</span>
+    <span class="sp-reserve-s">Tell us the date and venue.</span>
+  </span>
+  <span class="sp-reserve-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></span>
+</button>
 
 <script>
   document.getElementById('yr').textContent=new Date().getFullYear();
@@ -351,9 +457,354 @@ tailwind.config={theme:{extend:{
       if(eq)eq.classList.add('hot');if(feelIcon)feelIcon.innerHTML='&#9726;';setTimeout(function(){if(eq)eq.classList.remove('hot');if(feelIcon)feelIcon.innerHTML='&#9658;'},2000);
     }catch(e){}
   });
-  // quote submit (Netlify AJAX)
-  var qf=document.getElementById('qf');
-  qf.addEventListener('submit',function(ev){ev.preventDefault();var fd=new FormData(qf);fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(fd).toString()}).then(function(){qf.style.display='none';var ok=document.getElementById('qok');ok.classList.remove('hidden');ok.scrollIntoView({behavior:'smooth',block:'center'})}).catch(function(){qf.submit()})});
+</script>
+
+<!-- ============================================================
+     FORM-CHAT engine — conversational quote. Ported from the canonical
+     all-stars visitors-chat.js, adapted to StagePro's event-quote flow.
+     One step at a time; chips + text/date/tel/email inputs. Submits via
+     Netlify Forms AJAX (form-name=quote). Cheap guards: honeypot +
+     min-fill-time + session dedupe. window.SPChat hook drives the sheet.
+     ============================================================ -->
+<script>
+(function () {
+  "use strict";
+  var log = document.getElementById("sp-chat-log");
+  if (!log) return;
+  var composer = document.getElementById("sp-chat-composer") || log;
+  var srLive = document.getElementById("sp-chat-sr");
+
+  /* ---------- mobile focus mode ---------- */
+  var chatEl = document.querySelector(".sp-chat");
+  var chatHome = chatEl && chatEl.parentNode;   // restore here on exit
+  var chatNext = chatEl && chatEl.nextSibling;
+  var minBtn = document.getElementById("sp-chat-min");
+  var FOCUS_MQ = window.matchMedia("(max-width: 768px)");
+
+  function enterFocusMode() {
+    if (!chatEl || !FOCUS_MQ.matches) return;
+    // The quote section ancestor uses background-attachment + backdrop blur, which can
+    // trap position:fixed. Move the chat to <body> so the sheet is relative to the viewport.
+    if (chatEl.parentNode !== document.body) document.body.appendChild(chatEl);
+    chatEl.classList.add("is-focus");
+    document.documentElement.classList.add("chat-locked");
+    scroll();
+  }
+  function exitFocusMode() {
+    if (!chatEl) return;
+    chatEl.classList.remove("is-focus");
+    document.documentElement.classList.remove("chat-locked");
+    if (chatHome && chatEl.parentNode === document.body) chatHome.insertBefore(chatEl, chatNext);
+  }
+  // Deliberate tap on the answer field raises the sheet (NOT programmatic focus).
+  composer.addEventListener("click", function (e) {
+    var field = e.target && e.target.closest && e.target.closest(".cinput");
+    if (!field || chatEl.classList.contains("is-focus")) return;
+    enterFocusMode();
+    try { field.focus(); } catch (_) {}
+  });
+  // Tap a chip on a phone also opens the sheet so the keyboard-less steps feel full-screen.
+  composer.addEventListener("click", function (e) {
+    var chip = e.target && e.target.closest && e.target.closest(".cchip");
+    if (!chip || chatEl.classList.contains("is-focus") || !FOCUS_MQ.matches) return;
+    enterFocusMode();
+  });
+  if (minBtn) minBtn.addEventListener("click", function () {
+    var a = composer.querySelector(".cinput");
+    if (a) a.blur();
+    exitFocusMode();
+  });
+  // Tapping the dimmed page behind the sheet lowers it.
+  document.addEventListener("click", function (e) {
+    if (!chatEl || !chatEl.classList.contains("is-focus")) return;
+    // GOTCHA 2: an in-chat control that removes itself on click leaves e.target DETACHED
+    // by the time this click bubbles to document. A detached target is NOT a backdrop tap.
+    if (e.target && e.target.isConnected === false) return;
+    if (chatEl.contains(e.target)) return;
+    var a = composer.querySelector(".cinput");
+    if (a) a.blur();
+    exitFocusMode();
+  });
+  if (FOCUS_MQ.addEventListener) FOCUS_MQ.addEventListener("change", function (e) { if (!e.matches) exitFocusMode(); });
+
+  // Public hook so the mobile sticky bar can drive the same sheet.
+  window.SPChat = {
+    open: function () {
+      enterFocusMode();
+      var a = composer.querySelector(".cinput");
+      if (a) { try { a.focus(); } catch (_) {} }
+    },
+    close: exitFocusMode,
+    isOpen: function () { return !!(chatEl && chatEl.classList.contains("is-focus")); }
+  };
+
+  /* ---------- cheap client guards ---------- */
+  var GUARD_MIN_FILL_MS = 1500;            // ignore submits faster than ~1.5s (scripted)
+  var GUARD_DEDUPE_KEY = "sp_quote_done";  // session flag set on a completed submit
+  var chatStartedAt = Date.now();
+  function honeypotFilled() { var hp = document.getElementById("sp-hp"); return !!(hp && hp.value); }
+  function tooFast() { return (Date.now() - chatStartedAt) < GUARD_MIN_FILL_MS; }
+  function alreadySubmitted() { try { return sessionStorage.getItem(GUARD_DEDUPE_KEY) === "1"; } catch (e) { return false; } }
+  function markSubmitted() { try { sessionStorage.setItem(GUARD_DEDUPE_KEY, "1"); } catch (e) {} }
+  function shouldSilentlyDrop() { return honeypotFilled() || tooFast() || alreadySubmitted(); }
+
+  /* ---------- helpers ---------- */
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function scroll() { log.scrollTop = log.scrollHeight; }
+  var SPK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg>';
+
+  var lastSender = null;
+  function rowFor(sender) {
+    var r = el("div", "cmsg " + sender);
+    if (sender === lastSender) r.classList.add("followup");
+    lastSender = sender;
+    var av = el("span", "cav");
+    if (sender === "bot") av.innerHTML = SPK;
+    r.appendChild(av);
+    return r;
+  }
+  function userMsg(text) {
+    var r = rowFor("user");
+    r.appendChild(el("span", "cbub", text));
+    log.appendChild(r); scroll();
+  }
+
+  /* ---------- bot: typing then streamed text ---------- */
+  function typing() {
+    var t = el("div", "ctype");
+    var av = el("span", "cav"); av.innerHTML = SPK; t.appendChild(av);
+    var b = el("span", "ctype-b");
+    b.appendChild(el("span", "ctype-d")); b.appendChild(el("span", "ctype-d")); b.appendChild(el("span", "ctype-d"));
+    t.appendChild(b); log.appendChild(t); scroll();
+    return t;
+  }
+  function stream(bubble, text) {
+    return new Promise(function (res) {
+      var cur = el("span", "ccur"); bubble.appendChild(cur);
+      var i = 0;
+      (function step() {
+        if (i >= text.length) { cur.remove(); res(); return; }
+        var ch = text[i++];
+        cur.insertAdjacentText("beforebegin", ch); scroll();
+        var d = ch === " " ? 6 : 18 + (Math.random() * 12 - 4);
+        setTimeout(step, Math.max(7, d));
+      })();
+    });
+  }
+  function botSay(text, delay) {
+    return new Promise(function (res) {
+      var t = typing();
+      setTimeout(function () {
+        t.remove();
+        var r = rowFor("bot");
+        var b = el("span", "cbub"); r.appendChild(b);
+        log.appendChild(r); scroll();
+        stream(b, text).then(function () { if (srLive) srLive.textContent = text; res(); });
+      }, delay == null ? 520 : delay);
+    });
+  }
+
+  /* ---------- text / email / tel / date step ---------- */
+  function askInput(type, placeholder, opts) {
+    opts = opts || {};
+    return new Promise(function (res) {
+      var wrap = el("div", "cinput-wrap");
+      var input = el("input", "cinput");
+      input.type = type; input.placeholder = placeholder;
+      input.setAttribute("aria-label", placeholder);
+      if (opts.autocomplete) input.autocomplete = opts.autocomplete;
+      var send = el("button", "csend", "Send"); send.type = "button";
+      wrap.appendChild(input); wrap.appendChild(send);
+      composer.appendChild(wrap); scroll();
+      if (!FOCUS_MQ.matches) setTimeout(function () { input.focus(); }, 80);
+      function done() {
+        var v = (input.value || "").trim();
+        if (!v) return;
+        userMsg(v); wrap.remove(); res(v);
+      }
+      send.addEventListener("click", done);
+      input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); done(); } });
+    });
+  }
+
+  /* ---------- chip step (pick one) ---------- */
+  function askChips(options) {
+    return new Promise(function (res) {
+      var wrap = el("div", "cchips");
+      options.forEach(function (opt, idx) {
+        var b = el("button", "cchip", opt); b.type = "button";
+        b.style.setProperty("--i", idx);
+        b.addEventListener("click", function () {
+          userMsg(opt); wrap.remove(); res(opt);
+        });
+        wrap.appendChild(b);
+      });
+      composer.appendChild(wrap); scroll();
+    });
+  }
+
+  function validEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || "").trim()); }
+  function validPhone(s) { return /^\d{7,15}$/.test(String(s || "").replace(/[\s\-().+]/g, "")); }
+
+  var answers = {};
+
+  /* ---------- submit via Netlify Forms AJAX ---------- */
+  function submit() {
+    // A suspicious submit silently "succeeds" without posting.
+    if (shouldSilentlyDrop()) { markSubmitted(); return Promise.resolve(false); }
+    markSubmitted();
+    var data = {
+      "form-name": "quote",
+      name: answers.name || "",
+      email: answers.email || "",
+      phone: answers.phone || "",
+      event_type: answers.event_type || "",
+      event_date: answers.event_date || "",
+      venue: answers.venue || "",
+      attendance: answers.attendance || "",
+      needs: answers.needs || "",
+      message: answers.message || ""
+    };
+    return fetch("/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(data).toString()
+    }).then(function () { return true; }).catch(function () { return true; });
+  }
+
+  /* ---------- the conversation ---------- */
+  function askEmail() {
+    return askInput("email", "you@company.com", { autocomplete: "email" }).then(function (email) {
+      if (!validEmail(email)) {
+        return botSay("Hmm, that doesn't look right. Mind checking?", 480).then(askEmail);
+      }
+      answers.email = email;
+    });
+  }
+  function askPhone() {
+    return askInput("tel", "09xx xxx xxxx", { autocomplete: "tel" }).then(function (phone) {
+      if (!validPhone(phone)) {
+        return botSay("That number looks off. Can you check it?", 480).then(askPhone);
+      }
+      answers.phone = phone;
+    });
+  }
+
+  function run() {
+    botSay("Let's build your event. First, what kind of event is it?", 420)
+      .then(function () { return askChips(["Concert", "Corporate", "Sports", "Exhibition", "Other"]); })
+      .then(function (v) { answers.event_type = v; return botSay("When is it?", 560); })
+      .then(function () { return askInput("date", "Pick a date"); })
+      .then(function (v) { answers.event_date = v; return botSay("Where? City or venue is fine.", 560); })
+      .then(function () { return askInput("text", "City or venue"); })
+      .then(function (v) { answers.venue = v; return botSay("Roughly how many people?", 540); })
+      .then(function () { return askChips(["Under 200", "200 to 1,000", "1,000 to 5,000", "5,000 to 20,000", "20,000+"]); })
+      .then(function (v) { answers.attendance = v; return botSay("What do you need from us?", 540); })
+      .then(function () { return askChips(["Staging", "Audio", "Lighting", "LED Video", "Full turnkey"]); })
+      .then(function (v) { answers.needs = v; return botSay("Your name?", 520); })
+      .then(function () { return askInput("text", "Your name", { autocomplete: "name" }); })
+      .then(function (v) { answers.name = v; answers.message = "Event quote via site chat."; return botSay("Best mobile number?", 520); })
+      .then(askPhone)
+      .then(function () { return botSay("And an email for the quote?", 520); })
+      .then(askEmail)
+      .then(function () { return submit(); })
+      .then(function () {
+        return botSay("Got it. Our team will reply, usually within one business day, to size the right package. Thank you.", 640);
+      })
+      .then(function () {
+        var d = el("div", "cdone");
+        var a = el("a", null); a.href = "#services"; a.innerHTML = "See our systems &rarr;";
+        d.appendChild(a); log.appendChild(d); scroll();
+        // Retire the mobile sticky bar so it doesn't re-invite someone who just finished.
+        // Set BEFORE exiting focus — dropping the sheet toggles the chat class, which the
+        // bar watches, so the flag must already be in place when that refresh fires.
+        document.documentElement.classList.add("sp-quote-done");
+        exitFocusMode();
+      });
+  }
+
+  run();
+})();
+</script>
+
+<!-- ============================================================
+     Desktop dock controller (≥769). When the hero scrolls out of view,
+     the quote chat docks bottom-right and follows the reader. Inert ≤768.
+     ============================================================ -->
+<script>
+(function () {
+  "use strict";
+  var DOCK_MQ = window.matchMedia("(min-width:769px)");
+  var chat = document.querySelector(".sp-chat");
+  var hero = document.getElementById("top");
+  if (!chat || !hero) return;
+  var home = chat.parentNode, homeNext = chat.nextSibling, docked = false;
+  function isFocusActive() { return chat.classList.contains("is-focus"); }
+  function dock() {
+    if (docked || !DOCK_MQ.matches || isFocusActive()) return;
+    docked = true;
+    if (chat.parentNode !== document.body) document.body.appendChild(chat);  // escape transformed ancestors
+    chat.classList.add("is-docked");
+  }
+  function undock() {
+    if (!docked) return;
+    docked = false; chat.classList.remove("is-docked");
+    if (home && chat.parentNode === document.body) home.insertBefore(chat, homeNext);
+  }
+  var io = null;
+  function startObserver() {
+    if (io) return;
+    io = new IntersectionObserver(function (es) {
+      if (!DOCK_MQ.matches) return;
+      if (es[0].isIntersecting) undock(); else dock();   // hero visible -> inline; gone -> dock
+    }, { root: null, threshold: 0 });
+    io.observe(hero);
+  }
+  function stopObserver() { if (io) { io.disconnect(); io = null; } }
+  function applyMode() { if (DOCK_MQ.matches) startObserver(); else { stopObserver(); undock(); } }
+  if (DOCK_MQ.addEventListener) DOCK_MQ.addEventListener("change", applyMode);
+  else if (DOCK_MQ.addListener) DOCK_MQ.addListener(applyMode);
+  applyMode();
+})();
+</script>
+
+<!-- ============================================================
+     Mobile sticky bar controller (≤768). Slides up once the hero scrolls
+     away; tapping opens the chat sheet (window.SPChat.open). Hidden while
+     the sheet is open and after a completed submit. Inert above 768.
+     ============================================================ -->
+<script>
+(function () {
+  "use strict";
+  var BAR_MQ = window.matchMedia("(max-width:768px)");
+  var bar = document.getElementById("sp-reserve");
+  var hero = document.getElementById("top");
+  var chat = document.querySelector(".sp-chat");
+  if (!bar || !hero || !chat) return;
+  var heroAway = false;
+  function focusOpen() { return chat.classList.contains("is-focus"); }
+  function quoteDone() {
+    if (document.documentElement.classList.contains("sp-quote-done")) return true;
+    try { return sessionStorage.getItem("sp_quote_done") === "1"; } catch (e) { return false; }
+  }
+  function refresh() {
+    bar.classList.toggle("show", BAR_MQ.matches && heroAway && !focusOpen() && !quoteDone());
+  }
+  new IntersectionObserver(function (es) { heroAway = !es[0].isIntersecting; refresh(); }, { root: null, threshold: 0 }).observe(hero);
+  new MutationObserver(refresh).observe(chat, { attributes: true, attributeFilter: ["class"] });
+  bar.addEventListener("click", function (e) {
+    e.stopPropagation();   // GOTCHA 5: don't bubble to the backdrop-close handler
+    if (window.SPChat && window.SPChat.open) window.SPChat.open();
+  });
+  if (BAR_MQ.addEventListener) BAR_MQ.addEventListener("change", refresh);
+  else if (BAR_MQ.addListener) BAR_MQ.addListener(refresh);
+  refresh();
+})();
 </script>
 </body>
 </html>
