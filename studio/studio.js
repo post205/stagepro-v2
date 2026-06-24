@@ -14,6 +14,7 @@ const els = {
   userEmail:document.getElementById('userEmail'),
   signout:  document.getElementById('signout'),
   register: document.getElementById('register'),
+  buyers:   document.getElementById('buyers'),
 };
 
 // --- asset register: pure render helpers (testable) ---------------------
@@ -213,11 +214,86 @@ function renderRegister(rows) {
   return addBar + stats + table;
 }
 
+// --- buyers: pure render helpers (testable) -----------------------------
+
+// Where a buyer's private board lives. Swap to the prod host on launch:
+//   const BOARD_BASE = 'https://buyers.stagepro.ph';
+// Default to this origin for local dev (→ http://localhost:8888/r/<token>).
+const BOARD_BASE =
+  (typeof window !== 'undefined' && window.location ? window.location.origin : '');
+
+// the buyer's private board URL: "<base>/r/<token>"
+function buyerLink(token, base) {
+  const b = String(base == null ? BOARD_BASE : base).replace(/\/+$/, '');
+  return b + '/r/' + encodeURIComponent(String(token || ''));
+}
+
+// normalize a new-buyer form into a writable buyers row + errors.
+// pure: token/active/created_at are DB defaults — not set here.
+function buildBuyerWrite(input) {
+  const errors = {};
+  const name = String(input.name == null ? '' : input.name).trim();
+  if (!name) errors.name = 'Name is required.';
+  const contact = String(input.contact == null ? '' : input.contact).trim() || null;
+  return { row: { name, contact }, errors, ok: Object.keys(errors).length === 0 };
+}
+
+// render the buyer list as an HTML string. Pure fn of (buyers[], links map).
+// `links[buyer.id]` = count of curated assets for that buyer.
+function renderBuyers(buyers, counts) {
+  const head =
+    '<div class="buyers-head">' +
+      '<button type="button" class="btn-add" data-buyer-add>+ Add buyer</button>' +
+    '</div>';
+
+  if (!buyers || !buyers.length) {
+    return head + '<p class="empty muted">No buyers yet. Add one to share a private board.</p>';
+  }
+  const c = counts || {};
+
+  const cards = buyers.map((b) => {
+    const id = escapeHtml(b.id);
+    const n = c[b.id] || 0;
+    const link = buyerLink(b.token);
+    const contact = b.contact
+      ? '<div class="buyer-contact">' + escapeHtml(b.contact) + '</div>' : '';
+    const checked = b.active ? ' checked' : '';
+    return (
+      '<div class="buyer-card' + (b.active ? '' : ' off') + '">' +
+        '<div class="buyer-top">' +
+          '<div>' +
+            '<div class="buyer-name">' + escapeHtml(b.name) + '</div>' + contact +
+          '</div>' +
+          '<div class="buyer-meta">' +
+            '<span class="buyer-count"><b>' + n + '</b> asset' + (n === 1 ? '' : 's') +
+              ' to view</span>' +
+            '<label class="toggle">' +
+              '<input type="checkbox" data-buyer-active="' + id + '"' + checked + '>' +
+              '<span class="track"></span>' +
+              '<span>' + (b.active ? 'Active' : 'Off') + '</span>' +
+            '</label>' +
+          '</div>' +
+        '</div>' +
+        '<div class="buyer-link">' +
+          '<code title="' + escapeHtml(link) + '">' + escapeHtml(link) + '</code>' +
+          '<button type="button" class="copy-btn" data-copy="' + escapeHtml(link) + '">Copy</button>' +
+        '</div>' +
+        '<div class="buyer-actions">' +
+          '<button type="button" class="mini" data-curate="' + id + '">Curate gear</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  return head + cards;
+}
+
 // expose pure helpers for unit checks (no-op in normal browser use)
 if (typeof window !== 'undefined') {
   window.__studio = {
     peso, monthsSince, statusDescriptor, computeStats, renderRegister,
     buildAssetWrite, todayStr, gearPath,
+    buyerLink, buildBuyerWrite, renderBuyers, BOARD_BASE,
   };
 }
 
@@ -255,6 +331,7 @@ function boot(env) {
       els.userEmail.textContent = session.user.email || '';
       show('app');
       loadRegister();
+      loadBuyers();
     } else {
       show('auth');
     }
@@ -571,6 +648,205 @@ function boot(env) {
     } catch (err) {
       console.error('[studio] editById threw:', err);
       alert('Network error loading that asset.');
+    }
+  }
+
+  // --- buyers: list, create, active toggle, copy, curate ----------------
+
+  // fetch buyers + per-buyer curated-asset counts, then paint.
+  async function loadBuyers() {
+    if (!els.buyers) return;
+    try {
+      const [bRes, laRes] = await Promise.all([
+        supabase.from('buyers').select('*').order('created_at', { ascending: true }),
+        supabase.from('buyer_assets').select('buyer_id'),
+      ]);
+      if (bRes.error) {
+        console.error('[studio] buyers query error:', bRes.error);
+        els.buyers.innerHTML =
+          '<p class="empty err">Could not load buyers. ' +
+          escapeHtml(bRes.error.message || '') + '</p>';
+        return;
+      }
+      const counts = {};
+      (laRes.data || []).forEach((r) => {
+        counts[r.buyer_id] = (counts[r.buyer_id] || 0) + 1;
+      });
+      els.buyers.innerHTML = renderBuyers(bRes.data || [], counts);
+    } catch (e) {
+      console.error('[studio] loadBuyers threw:', e);
+      els.buyers.innerHTML = '<p class="empty err">Network error loading buyers.</p>';
+    }
+  }
+
+  // create a buyer via a quick prompt flow (name required, contact optional).
+  async function addBuyer() {
+    const name = window.prompt('Buyer name (company or person):', '');
+    if (name == null) return; // cancelled
+    const contact = window.prompt('Contact (phone / email) — optional:', '') || '';
+    const { row, ok } = buildBuyerWrite({ name, contact });
+    if (!ok) { alert('Name is required.'); return; }
+    try {
+      const { error } = await supabase.from('buyers').insert(row); // token auto-gen
+      if (error) {
+        console.error('[studio] buyer insert error:', error);
+        alert('Could not create buyer: ' + (error.message || 'unknown error'));
+        return;
+      }
+      await loadBuyers();
+    } catch (e) {
+      console.error('[studio] addBuyer threw:', e);
+      alert('Network error creating buyer.');
+    }
+  }
+
+  // flip buyers.active; an inactive buyer's link returns nothing.
+  async function setBuyerActive(id, active) {
+    try {
+      const { error } = await supabase.from('buyers').update({ active }).eq('id', id);
+      if (error) {
+        console.error('[studio] buyer active write error:', error);
+        alert('Could not update buyer: ' + (error.message || 'unknown error'));
+      }
+      await loadBuyers();
+    } catch (e) {
+      console.error('[studio] setBuyerActive threw:', e);
+      alert('Network error updating buyer.');
+      await loadBuyers();
+    }
+  }
+
+  // copy a private link to the clipboard, with a transient "Copied" state.
+  async function copyLink(btn, text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      // fallback for non-secure contexts
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+    const prev = btn.textContent;
+    btn.textContent = 'Copied'; btn.classList.add('done');
+    setTimeout(() => { btn.textContent = prev; btn.classList.remove('done'); }, 1400);
+  }
+
+  // delegated clicks on the buyers list
+  if (els.buyers) {
+    els.buyers.addEventListener('click', (e) => {
+      if (e.target.closest('[data-buyer-add]')) { addBuyer(); return; }
+      const copyBtn = e.target.closest('[data-copy]');
+      if (copyBtn) { copyLink(copyBtn, copyBtn.getAttribute('data-copy')); return; }
+      const curBtn = e.target.closest('[data-curate]');
+      if (curBtn) { openCurate(curBtn.getAttribute('data-curate')); return; }
+    });
+    els.buyers.addEventListener('change', (e) => {
+      const t = e.target.closest('[data-buyer-active]');
+      if (t) setBuyerActive(t.getAttribute('data-buyer-active'), t.checked);
+    });
+  }
+
+  // --- curate-assets modal ---------------------------------------------
+  const curate = {
+    root:  document.getElementById('curateModal'),
+    list:  document.getElementById('curateList'),
+    title: document.getElementById('curateModalTitle'),
+  };
+  let curateBuyerId = null;
+
+  function closeCurate() {
+    if (!curate.root) return;
+    curate.root.hidden = true;
+    document.body.classList.remove('modal-open');
+    curateBuyerId = null;
+    loadBuyers(); // refresh counts after editing
+  }
+
+  if (curate.root) {
+    curate.root.addEventListener('click', (e) => {
+      if (e.target.closest('[data-curate-close]')) closeCurate();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !curate.root.hidden) closeCurate();
+    });
+    // delegated checkbox writes
+    curate.list.addEventListener('change', (e) => {
+      const cb = e.target.closest('[data-asset]');
+      if (cb) toggleBuyerAsset(cb.getAttribute('data-asset'), cb.checked, cb);
+    });
+  }
+
+  // open the curate modal for a buyer: show Sell-flagged assets + which are linked.
+  async function openCurate(buyerId) {
+    if (!buyerId || !curate.root) return;
+    curateBuyerId = buyerId;
+    curate.list.innerHTML = '<p class="muted">Loading…</p>';
+    curate.root.hidden = false;
+    document.body.classList.add('modal-open');
+    try {
+      const [aRes, lRes] = await Promise.all([
+        supabase.from('v_assets').select('*')
+          .eq('suggested_disposition', 'sell')
+          .order('book_value', { ascending: false }),
+        supabase.from('buyer_assets').select('asset_id').eq('buyer_id', buyerId),
+      ]);
+      if (aRes.error || lRes.error) {
+        console.error('[studio] curate load error:', aRes.error || lRes.error);
+        curate.list.innerHTML = '<p class="empty err">Could not load gear.</p>';
+        return;
+      }
+      const linked = new Set((lRes.data || []).map((r) => r.asset_id));
+      const rows = aRes.data || [];
+      if (!rows.length) {
+        curate.list.innerHTML =
+          '<p class="empty muted">No Sell-flagged gear yet. Flag assets as Sell in the register first.</p>';
+        return;
+      }
+      curate.list.innerHTML = rows.map((r) => {
+        const id = escapeHtml(r.id);
+        const ask = (r.disposition === 'sell' && r.asking_price != null)
+          ? '<span class="cr-ask">asking ' + peso(r.asking_price) + '</span>' : '';
+        return (
+          '<label class="curate-row">' +
+            '<input type="checkbox" data-asset="' + id + '"' +
+              (linked.has(r.id) ? ' checked' : '') + '>' +
+            '<div>' +
+              '<div class="cr-name">' + escapeHtml(r.name) + '</div>' +
+              '<div class="cr-sub">' + peso(r.book_value) + ' book · ' +
+                (Number(r.qty) || 0) + ' owned</div>' +
+            '</div>' + ask +
+          '</label>'
+        );
+      }).join('');
+    } catch (e) {
+      console.error('[studio] openCurate threw:', e);
+      curate.list.innerHTML = '<p class="empty err">Network error loading gear.</p>';
+    }
+  }
+
+  // check → insert a buyer_assets row; uncheck → delete it.
+  async function toggleBuyerAsset(assetId, on, cb) {
+    if (!curateBuyerId || !assetId) return;
+    cb.disabled = true;
+    try {
+      const q = on
+        ? supabase.from('buyer_assets').insert({ buyer_id: curateBuyerId, asset_id: assetId })
+        : supabase.from('buyer_assets').delete()
+            .eq('buyer_id', curateBuyerId).eq('asset_id', assetId);
+      const { error } = await q;
+      if (error) {
+        console.error('[studio] buyer_assets write error:', error);
+        alert('Could not save that change: ' + (error.message || 'unknown error'));
+        cb.checked = !on; // revert UI
+      }
+    } catch (e) {
+      console.error('[studio] toggleBuyerAsset threw:', e);
+      alert('Network error saving that change.');
+      cb.checked = !on;
+    } finally {
+      cb.disabled = false;
     }
   }
 

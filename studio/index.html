@@ -52,6 +52,14 @@
     <div id="register" class="register" aria-live="polite">
       <p class="muted">Loading…</p>
     </div>
+
+    <section class="buyers-sec">
+      <h2 class="h2">Buyers</h2>
+      <p class="sub">Private resale boards. Each buyer gets a unique link and sees only the Sell-flagged gear you curate for them.</p>
+      <div id="buyers" class="buyers" aria-live="polite">
+        <p class="muted">Loading…</p>
+      </div>
+    </section>
   </main>
 
   <!-- add / edit asset modal (filled + toggled by studio.js) -->
@@ -131,6 +139,24 @@
           <button type="submit" class="btn btn-inline" id="assetSubmit">Save asset</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- curate-assets modal (filled + toggled by studio.js) -->
+  <div id="curateModal" class="modal" hidden>
+    <div class="modal-backdrop" data-curate-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="curateModalTitle">
+      <div class="modal-head">
+        <h3 id="curateModalTitle" class="modal-title">Curate gear</h3>
+        <button type="button" class="btn-ghost" data-curate-close>Close</button>
+      </div>
+      <p class="sub" style="margin:0 0 18px">Tick the Sell-flagged gear this buyer may see on their board. Changes save instantly.</p>
+      <div id="curateList" class="curate-list" aria-live="polite">
+        <p class="muted">Loading…</p>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-inline" data-curate-close>Done</button>
+      </div>
     </div>
   </div>
 </div>
