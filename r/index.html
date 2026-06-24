@@ -10,6 +10,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/r/board.css">
+<style>
+  /* off-screen host for the invisible Turnstile widget — harmless when the
+     feature flag (window.ENV.TURNSTILE_SITEKEY) is absent and nothing renders. */
+  .hp{position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden}
+</style>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
 <div class="grain" aria-hidden="true"></div>
@@ -52,6 +58,9 @@
       property until sale is completed. This board is private to you — please don’t share the link.</p>
   </main>
 </div>
+
+<!-- off-screen host for the invisible Cloudflare Turnstile widget -->
+<div id="cf-turnstile" class="hp" aria-hidden="true"></div>
 
 <script src="/env.js"></script>
 <script type="module" src="/r/board.js"></script>

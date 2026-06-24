@@ -67,17 +67,101 @@ export function buyerTitle(rows) {
   return name ? `Curated for ${name}` : 'Curated selection';
 }
 
-/* ---------- interest (STUB — backend wiring is Task 2.5) ---------- */
-// TODO(task-2.5): POST interest to the edge function (Turnstile + edge write).
-// For now: no-op that flips the button to a disabled "coming soon" state.
-export function onInterest(assetId, btn) {
-  // eslint-disable-next-line no-console
-  console.log('[board] interest stub — assetId:', assetId, '(wiring lands in task 2.5)');
-  if (btn) {
-    btn.textContent = 'Noted — we’ll be in touch';
-    btn.classList.add('is-stub');
-    btn.disabled = true;
+/* ---------- Turnstile (invisible, render-on-demand) ---------- */
+// Canonical POST205 pattern. Returns a one-shot token. The widget host
+// (#cf-turnstile.hp) is off-screen and harmless when the flag is absent.
+let _tsId = null;
+export function getTurnstileToken() {
+  return new Promise((res, rej) => {
+    if (typeof turnstile === 'undefined') return rej(new Error('turnstile'));
+    const c = document.getElementById('cf-turnstile');
+    if (!c) return rej(new Error('turnstile'));
+    if (_tsId === null) {
+      _tsId = turnstile.render(c, {
+        sitekey: window.ENV.TURNSTILE_SITEKEY,
+        size: 'invisible',
+        callback: res,
+        'error-callback': () => rej(new Error('turnstile')),
+      });
+    } else {
+      turnstile.reset(_tsId);
+    }
+    turnstile.execute(_tsId, { sitekey: window.ENV.TURNSTILE_SITEKEY });
+  });
+}
+
+/* ---------- interest (real submission — Task 2.5) ---------- */
+// Impure: gathers an optional message, runs the Turnstile gate (when the
+// flag is set), and POSTs to the `submit-interest` edge function. The body
+// carries the board TOKEN (resolves to the buyer server-side) and the
+// assetId — NEVER a buyer id. Guards against double-submit; never leaks
+// server detail on failure.
+export async function onInterest(assetId, btn, ctx) {
+  const { supabase, token } = ctx || {};
+  if (!supabase || !token || !btn || btn.disabled) return;
+
+  // Optional message — keep it simple, match the page's restraint.
+  let message = '';
+  if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
+    const r = window.prompt(
+      'Add a note for StagePro (optional) — quantity, timing, questions:',
+      '',
+    );
+    if (r === null) return; // cancelled — don't submit
+    message = r.trim();
   }
+
+  // In-flight guard.
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.classList.add('is-sending');
+  btn.textContent = 'Sending…';
+  setInterestError(btn, '');
+
+  try {
+    // Turnstile token — only when the feature flag is set. Without the flag
+    // we send an empty token; prod rejects it, local dev flag is always on.
+    let turnstileToken = '';
+    if (window.ENV && window.ENV.TURNSTILE_SITEKEY) {
+      turnstileToken = await getTurnstileToken();
+    }
+
+    const { data, error } = await supabase.functions.invoke('submit-interest', {
+      body: { token, assetId, message, turnstileToken },
+    });
+    if (error || !data || !data.id) throw error || new Error('no-id');
+
+    // Confirmed.
+    btn.classList.remove('is-sending');
+    btn.classList.add('is-done');
+    btn.textContent = 'Noted — StagePro will reach out';
+    btn.disabled = true;
+  } catch (e) {
+    // Gentle inline error; re-enable so they can retry. No detail leak.
+    console.error('[board] interest failed:', e?.message || e);
+    btn.classList.remove('is-sending');
+    btn.disabled = false;
+    btn.textContent = original;
+    setInterestError(btn, 'Couldn’t send that just now — please try again.');
+  }
+}
+
+// Small inline error line beneath a card's button.
+function setInterestError(btn, msg) {
+  const card = btn.closest('.gcard') || btn.parentElement;
+  if (!card) return;
+  let el = card.querySelector('.gint-err');
+  if (!msg) {
+    if (el) el.remove();
+    return;
+  }
+  if (!el) {
+    el = document.createElement('p');
+    el.className = 'gint-err';
+    el.setAttribute('role', 'alert');
+    btn.insertAdjacentElement('afterend', el);
+  }
+  el.textContent = msg;
 }
 
 /* ---------- boot ---------- */
@@ -100,8 +184,8 @@ async function boot() {
   if (!token) { show('empty'); return; }
 
   let rows = [];
+  const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
   try {
-    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
     const { data, error } = await supabase.rpc('board_by_token', { p_token: token });
     if (error) throw error;
     rows = Array.isArray(data) ? data : [];
@@ -119,7 +203,7 @@ async function boot() {
   grid.innerHTML = renderCards(rows);
   grid.addEventListener('click', (ev) => {
     const btn = ev.target.closest('.gint');
-    if (btn && !btn.disabled) onInterest(btn.dataset.asset, btn);
+    if (btn && !btn.disabled) onInterest(btn.dataset.asset, btn, { supabase, token });
   });
   show('board');
 }

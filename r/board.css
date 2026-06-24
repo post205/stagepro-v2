@@ -111,9 +111,13 @@ code{background:var(--ink2);border:1px solid var(--line);border-radius:5px;
 }
 .gint:hover{background:#1f7ae0}
 .gint:active{transform:translateY(1px)}
-.gint.is-stub{background:var(--ink2);color:var(--brandc);border:1px solid var(--line);
+.gint.is-sending{background:var(--ink2);color:var(--mute);border:1px solid var(--line);
+  box-shadow:none;cursor:default;opacity:.85}
+.gint.is-sending:hover{background:var(--ink2)}
+.gint.is-done{background:var(--ink2);color:var(--brandc);border:1px solid var(--line);
   box-shadow:none;cursor:default}
-.gint.is-stub:hover{background:var(--ink2)}
+.gint.is-done:hover{background:var(--ink2)}
+.gint-err{color:#ff8585;font-size:12.5px;line-height:1.5;margin:10px 0 0}
 
 .foot-note{color:var(--mute);font-size:12px;line-height:1.6;margin:40px 0 0;max-width:64ch}
 
