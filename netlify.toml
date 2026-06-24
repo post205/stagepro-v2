@@ -1,3 +1,10 @@
 [build]
   command = "node scripts/gen-env.mjs"
   publish = "."
+
+# Pretty tokenized buyer board: /r/<token> -> /r/index.html?t=<token> (rewrite, 200).
+# Excludes the real assets so /r/index.html, /r/board.js, /r/board.css still serve.
+[[redirects]]
+  from = "/r/:token"
+  to = "/r/index.html?t=:token"
+  status = 200

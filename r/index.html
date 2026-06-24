@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>StagePro · private acquisition board</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/r/board.css">
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- not-configured fallback (shown by JS if window.ENV missing) -->
+<div id="noconfig" class="screen" hidden>
+  <div class="card">
+    <h1 class="wordmark">Stage<span>Pro</span></h1>
+    <p class="muted">This board is not configured. <code>env.js</code> is missing or did not load.</p>
+  </div>
+</div>
+
+<!-- neutral / invalid-token screen (non-leaky) -->
+<div id="empty" class="screen" hidden>
+  <div class="card">
+    <h1 class="wordmark">Stage<span>Pro</span></h1>
+    <p class="eyebrow">Private acquisition board</p>
+    <h2 class="empty-h">This link isn’t active</h2>
+    <p class="muted">Nothing here right now — check with StagePro for an up-to-date link.</p>
+    <p class="muted small">StagePro, Inc. · staging · audio · lighting · LED video · since 1998</p>
+  </div>
+</div>
+
+<!-- board -->
+<div id="board" class="app" hidden>
+  <header class="topbar">
+    <div class="brand">Stage<span>Pro</span> <em>private board</em></div>
+    <a class="contact-link" href="mailto:hello@stagepro.ph">Talk to StagePro</a>
+  </header>
+
+  <main class="main">
+    <p class="eyebrow">Available for acquisition</p>
+    <h1 id="boardTitle" class="board-h">Curated selection</h1>
+    <p class="sub">A private set of StagePro production gear, offered for acquisition. Express
+      interest on any item and our team will reach out with condition, logistics, and terms.</p>
+
+    <div id="grid" class="grid" role="list"></div>
+
+    <p class="foot-note">Prices indicative and subject to inspection. Items remain StagePro
+      property until sale is completed. This board is private to you — please don’t share the link.</p>
+  </main>
+</div>
+
+<script src="/env.js"></script>
+<script type="module" src="/r/board.js"></script>
+</body>
+</html>
