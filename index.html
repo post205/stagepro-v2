@@ -101,6 +101,11 @@ tailwind.config={theme:{extend:{
   .mute-btn{display:inline-flex;align-items:center;gap:7px;font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#7cc0ff;background:#11151e;border:1px solid #2e8bf0;border-radius:999px;padding:9px 16px;cursor:pointer;transition:background .15s,color .15s}
   .mute-btn:hover{background:#161d2a}
   .mute-btn[aria-pressed="true"]{color:#8b97a8;border-color:#33425a}
+  .mute-btn .ic{display:inline-block;vertical-align:-2px}
+  .mute-btn .ic-off{display:none}
+  .mute-btn[aria-pressed="true"] .ic-on{display:none}
+  .mute-btn[aria-pressed="true"] .ic-off{display:inline-block}
+  .sf-cue svg{vertical-align:-1px}
   .eq.live i{animation:none;transition:height .08s linear}
   /* Act II — chiaroscuro: a moving video carved out of shadow by your light.
      One video + a dark scrim with a transparent hole at the pointer (lighter
@@ -168,6 +173,7 @@ tailwind.config={theme:{extend:{
 
   /* mobile focus sheet (≤768): full-screen bottom sheet, keyboard-safe */
   .sp-chat-min{display:none}
+  .sp-dock-toggle,.sp-dock-launch{display:none}
   @media(max-width:768px){
     .sp-chat.is-focus{position:fixed;inset:0;top:auto;left:0;right:0;bottom:0;height:88dvh;width:100%;max-width:none;margin:0;border:0;border-radius:20px 20px 0 0;z-index:300;background:#0b0f16;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 -18px 44px rgba(0,0,0,.6);display:flex;flex-direction:column}
     .sp-chat.is-focus .sp-chat-log{flex:1;min-height:0;overflow-y:auto;padding-top:20px}
@@ -186,6 +192,15 @@ tailwind.config={theme:{extend:{
     .sp-chat.is-docked{position:fixed;right:24px;bottom:24px;top:auto;left:auto;width:380px;max-width:calc(100vw - 48px);height:auto;max-height:min(560px,calc(100vh - 110px));z-index:200;margin:0;box-shadow:0 24px 64px rgba(0,0,0,.55),0 4px 16px rgba(0,0,0,.4);animation:spx-dock-in .26s ease}
     .sp-chat.is-docked .sp-chat-log{flex:1;min-height:0;overflow-y:auto}
     .sp-chat.is-docked .sp-chat-composer{flex-shrink:0}
+    /* collapse: chevron when docked+expanded; pill launcher when collapsed */
+    .sp-chat.is-docked .sp-dock-toggle{display:grid;place-items:center;position:absolute;top:10px;right:10px;z-index:6;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .sp-chat.is-docked .sp-dock-toggle svg{width:16px;height:16px}
+    .sp-chat.is-docked.is-collapsed{width:auto;height:auto;max-height:none;min-height:0;border-radius:999px;overflow:visible;background:#2e8bf0;box-shadow:0 16px 40px rgba(0,0,0,.5);animation:none}
+    .sp-chat.is-docked.is-collapsed .sp-chat-log,
+    .sp-chat.is-docked.is-collapsed .sp-chat-composer,
+    .sp-chat.is-docked.is-collapsed .sp-chat-min,
+    .sp-chat.is-docked.is-collapsed .sp-dock-toggle{display:none}
+    .sp-chat.is-docked.is-collapsed .sp-dock-launch{display:inline-flex;align-items:center;gap:9px;padding:13px 20px;color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;cursor:pointer;border:0;background:transparent;-webkit-tap-highlight-color:transparent}
   }
   @keyframes spx-dock-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
   @media(prefers-reduced-motion:reduce){.sp-chat.is-docked{animation:none}}
@@ -257,7 +272,7 @@ tailwind.config={theme:{extend:{
 <section class="act bg-ink2" id="actSound" role="button" tabindex="0" aria-label="Interactive sound. Click or tap anywhere, then move to pan and shape the mix.">
   <div class="act-word" aria-hidden="true">Sound</div>
   <div class="sound-spot" id="soundSpot"></div>
-  <div class="sf-cue" id="sfCue" aria-hidden="true"><span>&#9654;</span> Click anywhere to play</div>
+  <div class="sf-cue" id="sfCue" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Click anywhere to play</div>
   <div class="sf-readout"><span id="sfPan">Center</span> &middot; <b id="sfTone">Full</b></div>
   <!-- the room itself: a full-width spectrum across the section floor -->
   <div class="eq" id="eq" aria-hidden="true">
@@ -268,7 +283,7 @@ tailwind.config={theme:{extend:{
     <h3 class="anton uppercase text-white text-6xl sm:text-8xl leading-[0.85] reveal" data-d="1">Move the<br><span class="text-brand">whole room.</span></h3>
     <p class="mt-5 text-mute max-w-md mx-auto reveal" data-d="2">Premium indoor, concert-grade outdoor, fixed-install. Skip the spec sheet. Feel it.</p>
     <div class="mt-7 flex items-center justify-center gap-4 reveal" data-d="3">
-      <button id="muteBtn" type="button" class="mute-btn" aria-pressed="false" aria-label="Mute or unmute the sound"><span class="sound-ico" id="muteIco">&#9654;</span> <span id="muteLabel">Sound on</span></button>
+      <button id="muteBtn" type="button" class="mute-btn" aria-pressed="false" aria-label="Mute or unmute the sound"><svg class="ic ic-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg> <span id="muteLabel">Sound on</span></button>
       <div class="text-xs text-mute max-w-[15rem] text-left">Click anywhere &mdash; or tap on a tablet &mdash; then move: <b class="text-[#7cc0ff] font-semibold">left&ndash;right</b> pans the room, <b class="text-[#7cc0ff] font-semibold">up&ndash;down</b> lifts airy to full.</div>
     </div>
     <audio id="spAudio" src="assets/sound.mp3" loop preload="none"></audio>
@@ -278,7 +293,7 @@ tailwind.config={theme:{extend:{
 <!-- ACT II — LIGHT -->
 <section class="act bg-ink" id="actLight">
   <div class="chiaro" id="chiaro">
-    <video class="chiaro-vid" id="chiaroVid" autoplay muted loop playsinline preload="auto" poster="assets/hero-02.jpg" src="assets/hero.mp4"></video>
+    <video class="chiaro-vid" id="chiaroVid" muted loop playsinline preload="none" poster="assets/hero-02.jpg" src="assets/hero.mp4"></video>
     <div class="chiaro-scrim" id="chiaroScrim"></div>
   </div>
   <div class="act-word" aria-hidden="true">Light</div>
@@ -438,6 +453,14 @@ tailwind.config={theme:{extend:{
         <button type="button" class="sp-chat-min" id="sp-chat-min" aria-label="Minimize chat">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
+        <!-- Desktop dock: collapse to a launcher pill (shown only when docked). -->
+        <button type="button" class="sp-dock-toggle" id="sp-dock-toggle" aria-label="Collapse the quote chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button type="button" class="sp-dock-launch" id="sp-dock-launch" aria-label="Open the quote chat">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z"/></svg>
+          <span>Get a quote</span>
+        </button>
         <div class="sp-chat-log" id="sp-chat-log" aria-label="Tell us about your event"></div>
         <!-- Pinned composer: the active answer field mounts here, always in view. -->
         <div class="sp-chat-composer" id="sp-chat-composer"></div>
@@ -506,7 +529,16 @@ tailwind.config={theme:{extend:{
     actLight.addEventListener('pointerenter',function(){lit=true;});
     actLight.addEventListener('pointerdown',function(){lit=true;});
     actLight.addEventListener('pointerleave',function(){lit=false;});
-    if(chiaroVid){var pv=chiaroVid.play();if(pv&&pv.catch)pv.catch(function(){});}
+    // Lazy: only load+play the video while the act is near/in view (one video
+    // decoding at a time — big win on tablets). Pause + free it when away.
+    if(chiaroVid){
+      if('IntersectionObserver' in window){
+        new IntersectionObserver(function(es){es.forEach(function(en){
+          if(en.isIntersecting){var pv=chiaroVid.play();if(pv&&pv.catch)pv.catch(function(){});}
+          else{try{chiaroVid.pause();}catch(e){}}
+        });},{rootMargin:'300px'}).observe(actLight);
+      }else{var pv=chiaroVid.play();if(pv&&pv.catch)pv.catch(function(){});}
+    }
     // Idle / untouched (incl. tablet at rest): drift so the shadow breathes.
     (function drift(ts){var p=(ts||0)/1000;if(!lit){chiaroScrim.style.setProperty('--mx',(50+34*Math.sin(p*0.5))+'%');chiaroScrim.style.setProperty('--my',(48+18*Math.sin(p*0.85+1))+'%');}requestAnimationFrame(drift);})(0);
   }
@@ -532,11 +564,19 @@ tailwind.config={theme:{extend:{
     if(aCtx.createStereoPanner){panner=aCtx.createStereoPanner();head.connect(panner);head=panner;}
     head.connect(filt);filt.connect(gain);gain.connect(analyser);analyser.connect(aCtx.destination);
   }
+  function onStarted(){if(aCtx&&aCtx.state!=='running')aCtx.resume();started=true;sect.classList.add('live');eq.classList.add('live');if(!raf)eqFrame();setMute(false);}
   function startSound(){
-    if(!spAudio||started&&!spAudio.paused)return;
+    if(!spAudio||(started&&!spAudio.paused))return;
     try{if(!aCtx)buildGraph();}catch(e){}
-    if(aCtx&&aCtx.state==='suspended')aCtx.resume();
-    spAudio.play().then(function(){started=true;sect.classList.add('live');eq.classList.add('live');if(!raf)eqFrame();setMute(false);}).catch(function(){});
+    // iOS: the AudioContext starts suspended and MUST be resumed inside the
+    // user gesture, BEFORE play(), or the element routed through WebAudio is silent.
+    if(aCtx&&aCtx.state!=='running'){try{aCtx.resume();}catch(e){}}
+    var p;try{p=spAudio.play();}catch(e){}
+    if(p&&p.then){p.then(onStarted).catch(function(){
+      // iOS sometimes rejects the first call; resume + retry once on the same gesture.
+      if(aCtx)try{aCtx.resume();}catch(e){}
+      try{spAudio.play().then(onStarted).catch(function(){});}catch(e){}
+    });}else{onStarted();}
   }
   function shape(x,y){
     curY=y;
@@ -552,7 +592,7 @@ tailwind.config={theme:{extend:{
   function setPos(e){var p=posOf(e);sect.style.setProperty('--mx',p[0]*100+'%');sect.style.setProperty('--my',p[1]*100+'%');return p;}
   function onDown(e){var p=setPos(e);startSound();shape(p[0],p[1]);}   // click/tap anywhere = start
   function onMove(e){var p=setPos(e);if(started)shape(p[0],p[1]);}     // then moving shapes the mix
-  function setMute(m){muted=m;if(gain&&aCtx)gain.gain.setTargetAtTime(m?0:(0.28+0.72*curY),aCtx.currentTime,0.05);if(muteBtn)muteBtn.setAttribute('aria-pressed',m?'true':'false');if(muteLabel)muteLabel.textContent=m?'Muted':'Sound on';if(muteIco)muteIco.innerHTML=m?'&#128263;':'&#9654;';}
+  function setMute(m){muted=m;if(gain&&aCtx)gain.gain.setTargetAtTime(m?0:(0.28+0.72*curY),aCtx.currentTime,0.05);if(muteBtn)muteBtn.setAttribute('aria-pressed',m?'true':'false');if(muteLabel)muteLabel.textContent=m?'Muted':'Sound on';}
   if(sect&&spAudio){
     sect.addEventListener('pointerdown',onDown);
     sect.addEventListener('pointermove',onMove);
@@ -856,6 +896,10 @@ tailwind.config={theme:{extend:{
   var hero = document.getElementById("top");
   if (!chat || !hero) return;
   var home = chat.parentNode, homeNext = chat.nextSibling, docked = false;
+  var dockToggle = document.getElementById("sp-dock-toggle");
+  var dockLaunch = document.getElementById("sp-dock-launch");
+  if (dockToggle) dockToggle.addEventListener("click", function (e) { e.stopPropagation(); chat.classList.add("is-collapsed"); });
+  if (dockLaunch) dockLaunch.addEventListener("click", function (e) { e.stopPropagation(); chat.classList.remove("is-collapsed"); });
   function isFocusActive() { return chat.classList.contains("is-focus"); }
   function dock() {
     if (docked || !DOCK_MQ.matches || isFocusActive()) return;
@@ -865,7 +909,7 @@ tailwind.config={theme:{extend:{
   }
   function undock() {
     if (!docked) return;
-    docked = false; chat.classList.remove("is-docked");
+    docked = false; chat.classList.remove("is-docked"); chat.classList.remove("is-collapsed");
     if (home && chat.parentNode === document.body) home.insertBefore(chat, homeNext);
   }
   var io = null;
