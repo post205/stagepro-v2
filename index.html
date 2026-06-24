@@ -65,8 +65,9 @@ tailwind.config={theme:{extend:{
   .act-word{font-family:'Space Grotesk',sans-serif;font-weight:700;text-transform:uppercase;line-height:.8;font-size:clamp(7rem,26vw,26rem);color:transparent;-webkit-text-stroke:1.5px #1c2533;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;user-select:none;z-index:1}
   .act-in{position:relative;z-index:3}
   /* equalizer */
-  .eq{display:flex;align-items:flex-end;gap:5px;height:130px}
-  .eq i{width:9px;border-radius:3px;height:18%;background:linear-gradient(#7cc0ff,#2e8bf0);animation:eqb 1.1s ease-in-out infinite}
+  .eq{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;align-items:flex-end;justify-content:center;gap:5px;height:clamp(140px,24vh,230px);padding:0 clamp(16px,4vw,52px);pointer-events:none;opacity:.5;transition:opacity .4s}
+  #actSound.live .eq{opacity:1}
+  .eq i{flex:1 1 0;max-width:16px;min-width:4px;border-radius:4px 4px 0 0;height:18%;background:linear-gradient(#7cc0ff,#2e8bf0);animation:eqb 1.1s ease-in-out infinite}
   .eq i:nth-child(3n){background:linear-gradient(#f5b81f,#d99a00)}
   @keyframes eqb{0%,100%{height:16%}50%{height:100%}}
   .eq.hot i{animation-duration:.34s}
@@ -77,23 +78,39 @@ tailwind.config={theme:{extend:{
   @keyframes sweep{0%{transform:rotate(-20deg)}50%{transform:rotate(20deg)}100%{transform:rotate(-20deg)}}
   .actglow{position:absolute;width:50vw;height:50vw;border-radius:50%;filter:blur(130px);pointer-events:none;background:radial-gradient(circle, rgba(46,139,240,.18), transparent 60%);left:var(--mx,50%);top:var(--my,50%);transform:translate(-50%,-50%);z-index:1}
   .feelbtn{font-family:'Space Grotesk',sans-serif;font-weight:500;text-transform:uppercase;letter-spacing:.12em}
-  /* Act I — sound play/pause */
-  .sound-btn{position:relative;width:64px;height:64px;border-radius:50%;background:#2e8bf0;color:#fff;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s,background .15s}
-  .sound-btn:hover{transform:scale(1.06);background:#1f7ae0}
-  .sound-btn.playing{background:#11151e;color:#7cc0ff;box-shadow:inset 0 0 0 1px #2e8bf0}
-  .sound-btn::before{content:"";position:absolute;inset:0;border-radius:50%;animation:spulse 2.2s ease-out infinite;pointer-events:none}
-  .sound-btn.playing::before{animation:none}
-  @keyframes spulse{0%{box-shadow:0 0 0 0 rgba(46,139,240,.55)}100%{box-shadow:0 0 0 16px rgba(46,139,240,0)}}
-  .sound-ico{font-size:18px;line-height:1;pointer-events:none}
+  /* Act I — the WHOLE section is a spatial instrument (hover/tap + move).
+     touch-action:pan-y keeps vertical scroll free on tablet; horizontal
+     sweeps drive the mix. A section-wide light follows the pointer. */
+  #actSound{cursor:pointer;touch-action:pan-y}
+  #actSound.live{cursor:crosshair}
+  #actSound:focus-visible{outline:2px solid #2e8bf0;outline-offset:-4px}
+  /* cursor-following "click to play" cue — disappears once playing */
+  .sf-cue{position:absolute;left:var(--mx,50%);top:var(--my,52%);transform:translate(-50%,-50%);z-index:4;display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;background:rgba(46,139,240,.18);border:1px solid rgba(124,192,255,.55);color:#eaf3ff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.45);animation:cuepulse 1.8s ease-in-out infinite}
+  .sf-cue span{font-size:10px;opacity:.9}
+  #actSound.live .sf-cue{opacity:0;visibility:hidden;transition:opacity .3s}
+  @keyframes cuepulse{0%,100%{box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 0 rgba(46,139,240,.5)}50%{box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 16px rgba(46,139,240,0)}}
+  .sound-spot{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.5;transition:opacity .5s;background:radial-gradient(540px circle at var(--mx,50%) var(--my,50%),rgba(46,139,240,.26),rgba(124,192,255,.07) 44%,transparent 68%);mix-blend-mode:screen}
+  #actSound.live .sound-spot{opacity:1}
+  .sf-readout{position:absolute;top:26px;left:28px;z-index:3;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:#7cc0ff;opacity:0;transition:opacity .35s}
+  #actSound.live .sf-readout{opacity:.92}
+  .sf-readout b{color:#f5b81f;font-weight:600}
+  .sf-hint{position:absolute;top:26px;right:28px;z-index:3;font-family:'Space Grotesk',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6b7585;transition:opacity .35s;animation:hintpulse 2.4s ease-in-out infinite}
+  #actSound.live .sf-hint{opacity:0;animation:none}
+  @keyframes hintpulse{0%,100%{opacity:.5}50%{opacity:.95}}
+  .sound-ico{font-size:14px;line-height:1;pointer-events:none}
+  .mute-btn{display:inline-flex;align-items:center;gap:7px;font-family:'Space Grotesk',sans-serif;font-weight:500;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#7cc0ff;background:#11151e;border:1px solid #2e8bf0;border-radius:999px;padding:9px 16px;cursor:pointer;transition:background .15s,color .15s}
+  .mute-btn:hover{background:#161d2a}
+  .mute-btn[aria-pressed="true"]{color:#8b97a8;border-color:#33425a}
   .eq.live i{animation:none;transition:height .08s linear}
-  /* Act II — chiaroscuro: light carved from shadow */
+  /* Act II — chiaroscuro: a moving video carved out of shadow by your light.
+     One video + a dark scrim with a transparent hole at the pointer (lighter
+     on tablets than two stacked video layers). */
   .chiaro{position:absolute;inset:0;overflow:hidden;z-index:0}
-  .chiaro-shadow,.chiaro-light{position:absolute;inset:0;background:url('assets/hero-02.jpg') center/cover no-repeat}
-  .chiaro-shadow{filter:brightness(.10) grayscale(.45) contrast(1.12)}
-  .chiaro-light{filter:brightness(1.14) contrast(1.12) saturate(1.05);-webkit-mask-image:radial-gradient(circle 300px at var(--mx,50%) var(--my,46%),#000 0%,rgba(0,0,0,.55) 42%,transparent 70%);mask-image:radial-gradient(circle 300px at var(--mx,50%) var(--my,46%),#000 0%,rgba(0,0,0,.55) 42%,transparent 70%)}
+  .chiaro-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(1.06) contrast(1.08) saturate(1.05)}
+  .chiaro-scrim{position:absolute;inset:0;background:rgba(6,8,12,.93);-webkit-mask-image:radial-gradient(circle 320px at var(--mx,50%) var(--my,48%),transparent 0%,rgba(0,0,0,.4) 40%,#000 72%);mask-image:radial-gradient(circle 320px at var(--mx,50%) var(--my,48%),transparent 0%,rgba(0,0,0,.4) 40%,#000 72%)}
   #actLight .act-in{text-shadow:0 2px 28px rgba(0,0,0,.9),0 0 4px rgba(0,0,0,.8)}
-  @media (max-width:900px){.chiaro-light{-webkit-mask-image:radial-gradient(circle 170px at var(--mx,50%) var(--my,46%),#000 0%,rgba(0,0,0,.55) 42%,transparent 72%);mask-image:radial-gradient(circle 170px at var(--mx,50%) var(--my,46%),#000 0%,rgba(0,0,0,.55) 42%,transparent 72%)}}
-  @media (prefers-reduced-motion:reduce){.sound-btn::before{animation:none}}
+  @media (max-width:900px){.chiaro-scrim{-webkit-mask-image:radial-gradient(circle 180px at var(--mx,50%) var(--my,48%),transparent 0%,rgba(0,0,0,.4) 42%,#000 74%);mask-image:radial-gradient(circle 180px at var(--mx,50%) var(--my,48%),transparent 0%,rgba(0,0,0,.4) 42%,#000 74%)}}
+  @media (prefers-reduced-motion:reduce){.eq i{animation:none}}
 
   /* ============================================================
      FORM-CHAT — conversational quote, ported from the canonical
@@ -237,43 +254,38 @@ tailwind.config={theme:{extend:{
 </section>
 
 <!-- ACT I — SOUND -->
-<section class="act bg-ink2" id="actSound">
+<section class="act bg-ink2" id="actSound" role="button" tabindex="0" aria-label="Interactive sound. Click or tap anywhere, then move to pan and shape the mix.">
   <div class="act-word" aria-hidden="true">Sound</div>
-  <div class="act-in max-w-7xl mx-auto px-5 sm:px-8 w-full grid lg:grid-cols-2 gap-10 items-center">
-    <div class="reveal">
-      <p class="eyebrow text-[#b9bcc2] text-xs mb-4">Act I &middot; Sound</p>
-      <h3 class="anton uppercase text-white text-6xl sm:text-8xl leading-[0.85]">Move the<br><span class="text-brand">whole room.</span></h3>
-      <p class="mt-5 text-mute max-w-md">Premium indoor, concert-grade outdoor, fixed-install. Skip the spec sheet. Feel it.</p>
-      <div class="mt-7 flex items-center gap-4">
-        <button id="soundBtn" type="button" class="sound-btn" aria-label="Play the sound">
-          <span class="sound-ico" id="soundIco">&#9654;</span>
-        </button>
-        <div>
-          <div id="soundLabel" class="disp uppercase tracking-wider text-white text-sm">Press play</div>
-          <div class="text-xs text-mute mt-0.5">Real audio. Tap again to stop.</div>
-        </div>
-      </div>
-      <audio id="spAudio" src="assets/sound.mp3" loop preload="none"></audio>
+  <div class="sound-spot" id="soundSpot"></div>
+  <div class="sf-cue" id="sfCue" aria-hidden="true"><span>&#9654;</span> Click anywhere to play</div>
+  <div class="sf-readout"><span id="sfPan">Center</span> &middot; <b id="sfTone">Full</b></div>
+  <!-- the room itself: a full-width spectrum across the section floor -->
+  <div class="eq" id="eq" aria-hidden="true">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+  </div>
+  <div class="act-in max-w-2xl mx-auto px-5 sm:px-8 w-full text-center">
+    <p class="eyebrow text-[#b9bcc2] text-xs mb-4 reveal">Act I &middot; Sound</p>
+    <h3 class="anton uppercase text-white text-6xl sm:text-8xl leading-[0.85] reveal" data-d="1">Move the<br><span class="text-brand">whole room.</span></h3>
+    <p class="mt-5 text-mute max-w-md mx-auto reveal" data-d="2">Premium indoor, concert-grade outdoor, fixed-install. Skip the spec sheet. Feel it.</p>
+    <div class="mt-7 flex items-center justify-center gap-4 reveal" data-d="3">
+      <button id="muteBtn" type="button" class="mute-btn" aria-pressed="false" aria-label="Mute or unmute the sound"><span class="sound-ico" id="muteIco">&#9654;</span> <span id="muteLabel">Sound on</span></button>
+      <div class="text-xs text-mute max-w-[15rem] text-left">Click anywhere &mdash; or tap on a tablet &mdash; then move: <b class="text-[#7cc0ff] font-semibold">left&ndash;right</b> pans the room, <b class="text-[#7cc0ff] font-semibold">up&ndash;down</b> lifts airy to full.</div>
     </div>
-    <div class="reveal flex justify-center lg:justify-end" data-d="1">
-      <div class="eq" id="eq">
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-      </div>
-    </div>
+    <audio id="spAudio" src="assets/sound.mp3" loop preload="none"></audio>
   </div>
 </section>
 
 <!-- ACT II — LIGHT -->
 <section class="act bg-ink" id="actLight">
   <div class="chiaro" id="chiaro">
-    <div class="chiaro-shadow"></div>
-    <div class="chiaro-light" id="chiaroLight"></div>
+    <video class="chiaro-vid" id="chiaroVid" autoplay muted loop playsinline preload="auto" poster="assets/hero-02.jpg" src="assets/hero.mp4"></video>
+    <div class="chiaro-scrim" id="chiaroScrim"></div>
   </div>
   <div class="act-word" aria-hidden="true">Light</div>
   <div class="act-in max-w-7xl mx-auto px-5 sm:px-8 w-full text-center">
     <p class="eyebrow text-[#b9bcc2] text-xs mb-4 reveal">Act II &middot; Light</p>
     <h3 class="anton uppercase text-white text-6xl sm:text-9xl leading-[0.85] reveal" data-d="1">Light is<br><span class="text-brand">shadow.</span></h3>
-    <p class="mt-6 text-[#c9d2de] max-w-md mx-auto reveal" data-d="2">Light is nothing without the dark it carves. Move your cursor, and watch the shadow move with it.</p>
+    <p class="mt-6 text-[#c9d2de] max-w-md mx-auto reveal" data-d="2">Light is nothing without the dark it carves. Move your cursor &mdash; or drag a finger on a tablet &mdash; and lift the scene out of shadow.</p>
   </div>
 </section>
 
@@ -410,7 +422,8 @@ tailwind.config={theme:{extend:{
 
 <!-- QUOTE -->
 <section id="quote" class="relative imm scroll-mt-20" style="background-image:url('assets/cta-bg.jpg')">
-  <div class="absolute inset-0 bg-ink/92"></div>
+  <div class="absolute inset-0" style="background:linear-gradient(to bottom,rgba(6,8,12,.97),rgba(6,8,12,.82) 42%,rgba(6,8,12,.98))"></div>
+  <div class="absolute inset-0" style="background:radial-gradient(120% 80% at 50% 38%,transparent,rgba(6,8,12,.55))"></div>
   <div class="relative max-w-3xl mx-auto px-5 sm:px-8 py-24 sm:py-32">
     <div class="text-center reveal">
       <p class="eyebrow text-brand text-xs mb-4">Start the build</p>
@@ -484,33 +497,73 @@ tailwind.config={theme:{extend:{
   // cursor-follow light (hero spotlight + light act glow)
   function track(zone,target){zone.addEventListener('pointermove',function(e){var r=zone.getBoundingClientRect();target.style.setProperty('--mx',((e.clientX-r.left)/r.width*100)+'%');target.style.setProperty('--my',((e.clientY-r.top)/r.height*100)+'%')})}
   var heroSpot=document.getElementById('heroSpot'),topSec=document.getElementById('top'); if(heroSpot&&topSec)track(topSec,heroSpot);
-  // ACT II — chiaroscuro: the cursor is a light that carves the scene out of shadow.
-  var chiaroLight=document.getElementById('chiaroLight'),actLight=document.getElementById('actLight');
-  if(chiaroLight&&actLight){
-    track(actLight,chiaroLight);
-    // No cursor (touch): drift the light so the shadow still moves.
-    if(window.matchMedia('(hover:none)').matches){
-      (function drift(ts){var p=(ts||0)/1000;chiaroLight.style.setProperty('--mx',(50+38*Math.sin(p*0.55))+'%');chiaroLight.style.setProperty('--my',(46+20*Math.sin(p*0.9+1))+'%');requestAnimationFrame(drift)})(0);
-    }
+  // ACT II — chiaroscuro: a moving video carved out of shadow by your light.
+  // One video + a dark scrim masked to a transparent hole at the pointer.
+  var chiaroScrim=document.getElementById('chiaroScrim'),chiaroVid=document.getElementById('chiaroVid'),actLight=document.getElementById('actLight');
+  if(chiaroScrim&&actLight){
+    var lit=false;
+    track(actLight,chiaroScrim);
+    actLight.addEventListener('pointerenter',function(){lit=true;});
+    actLight.addEventListener('pointerdown',function(){lit=true;});
+    actLight.addEventListener('pointerleave',function(){lit=false;});
+    if(chiaroVid){var pv=chiaroVid.play();if(pv&&pv.catch)pv.catch(function(){});}
+    // Idle / untouched (incl. tablet at rest): drift so the shadow breathes.
+    (function drift(ts){var p=(ts||0)/1000;if(!lit){chiaroScrim.style.setProperty('--mx',(50+34*Math.sin(p*0.5))+'%');chiaroScrim.style.setProperty('--my',(48+18*Math.sin(p*0.85+1))+'%');}requestAnimationFrame(drift);})(0);
   }
-  // ACT I — real audio (royalty-free), play/pause, an AnalyserNode drives the equalizer.
-  var soundBtn=document.getElementById('soundBtn'),spAudio=document.getElementById('spAudio'),eq=document.getElementById('eq'),soundIco=document.getElementById('soundIco'),soundLabel=document.getElementById('soundLabel');
-  var aCtx=null,analyser=null,bars=eq?[].slice.call(eq.querySelectorAll('i')):[],raf=null;
+  // ACT I — sound as a spatial instrument. No play button: hover (desktop) or
+  // tap (touch) starts it; moving pans left/right (StereoPanner) and lifts the
+  // mix airy->full (low-pass cutoff + gain). An AnalyserNode drives the EQ.
+  var sect=document.getElementById('actSound'),spAudio=document.getElementById('spAudio'),eq=document.getElementById('eq'),
+      sfPan=document.getElementById('sfPan'),sfTone=document.getElementById('sfTone'),
+      muteBtn=document.getElementById('muteBtn'),muteIco=document.getElementById('muteIco'),muteLabel=document.getElementById('muteLabel');
+  var aCtx=null,analyser=null,panner=null,filt=null,gain=null,bars=eq?[].slice.call(eq.querySelectorAll('i')):[],raf=null,started=false,muted=false,curY=0.5;
+  function clamp01(v){return v<0?0:v>1?1:v;}
   function eqFrame(){
-    if(analyser){var data=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(data);var step=Math.max(1,Math.floor(data.length/(bars.length+2)));for(var i=0;i<bars.length;i++){var v=data[(i+1)*step]||0;bars[i].style.height=Math.max(8,(v/255)*100)+'%';}}
+    if(analyser){var d=new Uint8Array(analyser.frequencyBinCount);analyser.getByteFrequencyData(d);var step=Math.max(1,Math.floor(d.length/(bars.length+2)));for(var i=0;i<bars.length;i++){var v=d[(i+1)*step]||0;bars[i].style.height=Math.max(8,(v/255)*100)+'%';}}
     raf=requestAnimationFrame(eqFrame);
   }
-  function playSound(){
-    if(!aCtx){try{aCtx=new (window.AudioContext||window.webkitAudioContext)();var srcN=aCtx.createMediaElementSource(spAudio);analyser=aCtx.createAnalyser();analyser.fftSize=64;srcN.connect(analyser);analyser.connect(aCtx.destination);}catch(e){}}
-    if(aCtx&&aCtx.state==='suspended'){aCtx.resume();}
-    spAudio.play().then(function(){soundBtn.classList.add('playing');eq.classList.add('live');soundIco.innerHTML='&#10074;&#10074;';soundLabel.textContent='Playing';if(!raf)eqFrame();}).catch(function(){});
+  function buildGraph(){
+    aCtx=new (window.AudioContext||window.webkitAudioContext)();
+    var src=aCtx.createMediaElementSource(spAudio);
+    filt=aCtx.createBiquadFilter();filt.type='lowpass';filt.frequency.value=20000;filt.Q.value=0.7;
+    gain=aCtx.createGain();gain.gain.value=0.6;
+    analyser=aCtx.createAnalyser();analyser.fftSize=64;
+    var head=src;
+    if(aCtx.createStereoPanner){panner=aCtx.createStereoPanner();head.connect(panner);head=panner;}
+    head.connect(filt);filt.connect(gain);gain.connect(analyser);analyser.connect(aCtx.destination);
   }
-  function stopSound(){
-    spAudio.pause();soundBtn.classList.remove('playing');eq.classList.remove('live');soundIco.innerHTML='&#9654;';soundLabel.textContent='Press play';
-    if(raf){cancelAnimationFrame(raf);raf=null;}
-    bars.forEach(function(b){b.style.height='';});
+  function startSound(){
+    if(!spAudio||started&&!spAudio.paused)return;
+    try{if(!aCtx)buildGraph();}catch(e){}
+    if(aCtx&&aCtx.state==='suspended')aCtx.resume();
+    spAudio.play().then(function(){started=true;sect.classList.add('live');eq.classList.add('live');if(!raf)eqFrame();setMute(false);}).catch(function(){});
   }
-  if(soundBtn&&spAudio){soundBtn.addEventListener('click',function(){spAudio.paused?playSound():stopSound();});}
+  function shape(x,y){
+    curY=y;
+    if(aCtx){var t=aCtx.currentTime;
+      if(panner)panner.pan.setTargetAtTime(x*2-1,t,0.06);
+      filt.frequency.setTargetAtTime(600*Math.pow(20000/600,y),t,0.06);
+      if(!muted)gain.gain.setTargetAtTime(0.28+0.72*y,t,0.06);
+    }
+    if(sfPan)sfPan.textContent=x<0.38?'Left':x>0.62?'Right':'Center';
+    if(sfTone)sfTone.textContent=y<0.34?'Airy':y>0.68?'Full':'Warm';
+  }
+  function posOf(e){var r=sect.getBoundingClientRect();return [clamp01((e.clientX-r.left)/r.width),clamp01((e.clientY-r.top)/r.height)];}
+  function setPos(e){var p=posOf(e);sect.style.setProperty('--mx',p[0]*100+'%');sect.style.setProperty('--my',p[1]*100+'%');return p;}
+  function onDown(e){var p=setPos(e);startSound();shape(p[0],p[1]);}   // click/tap anywhere = start
+  function onMove(e){var p=setPos(e);if(started)shape(p[0],p[1]);}     // then moving shapes the mix
+  function setMute(m){muted=m;if(gain&&aCtx)gain.gain.setTargetAtTime(m?0:(0.28+0.72*curY),aCtx.currentTime,0.05);if(muteBtn)muteBtn.setAttribute('aria-pressed',m?'true':'false');if(muteLabel)muteLabel.textContent=m?'Muted':'Sound on';if(muteIco)muteIco.innerHTML=m?'&#128263;':'&#9654;';}
+  if(sect&&spAudio){
+    sect.addEventListener('pointerdown',onDown);
+    sect.addEventListener('pointermove',onMove);
+    sect.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();started?setMute(!muted):startSound();}});
+    if(muteBtn){
+      muteBtn.addEventListener('pointerdown',function(e){e.stopPropagation();});
+      muteBtn.addEventListener('click',function(){if(!started){startSound();return;}setMute(!muted);});
+    }
+    // Pause when the act scrolls out of view so the sound doesn't trail the page.
+    if('IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting&&started&&!spAudio.paused){spAudio.pause();sect.classList.remove('live');eq.classList.remove('live');}});},{threshold:0.12}).observe(sect);}
+  }
 </script>
 
 <!-- ============================================================
