@@ -3,6 +3,9 @@
   --brand:#2e8bf0; --brandc:#7cc0ff; --amber:#f5b81f; --mute:#8b97a8; --fg:#eef2f7;
 }
 *{box-sizing:border-box}
+/* the hidden attribute must beat .screen/.app display:flex, or all three
+   state screens (noconfig/empty/board) stack on top of each other. */
+[hidden]{display:none !important}
 html{-webkit-text-size-adjust:100%}
 html,body{overflow-x:clip}
 body{

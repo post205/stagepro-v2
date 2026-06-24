@@ -3,6 +3,9 @@
   --brand:#2e8bf0; --brandc:#7cc0ff; --amber:#f5b81f; --mute:#8b97a8; --fg:#eef2f7;
 }
 *{box-sizing:border-box}
+/* hidden must beat .screen/.app display:flex, or the state screens
+   (noconfig/auth/app) stack on top of each other. */
+[hidden]{display:none !important}
 html{-webkit-text-size-adjust:100%}
 html,body{overflow-x:clip}
 body{
