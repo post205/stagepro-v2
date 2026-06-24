@@ -220,9 +220,14 @@ function renderRegister(rows) {
 
 // Where a buyer's private board lives. Swap to the prod host on launch:
 //   const BOARD_BASE = 'https://buyers.stagepro.ph';
-// Default to this origin for local dev (→ http://localhost:8888/r/<token>).
-const BOARD_BASE =
-  (typeof window !== 'undefined' && window.location ? window.location.origin : '');
+// Otherwise derive the mount base from the studio's own URL — everything before
+// "/studio" — so links are correct at the root (localhost:8888/r/<token>) AND
+// under a subpath deploy (post205.com/stagepro/studio/ → post205.com/stagepro/r/<token>).
+const BOARD_BASE = (function () {
+  if (typeof window === 'undefined' || !window.location) return '';
+  const m = window.location.pathname.match(/^(.*?)\/studio(?:\/|$)/);
+  return window.location.origin + (m ? m[1] : '');
+})();
 
 // the buyer's private board URL: "<base>/r/<token>"
 function buyerLink(token, base) {
