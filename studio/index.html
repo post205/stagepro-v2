@@ -115,6 +115,15 @@
             <label class="lbl" for="f-notes">Notes</label>
             <input id="f-notes" name="notes" type="text" autocomplete="off">
           </div>
+          <div class="field fspan">
+            <label class="lbl">Photos</label>
+            <div id="photoThumbs" class="photo-thumbs"></div>
+            <label class="photo-add" id="photoAddLabel">
+              <input id="f-photos" type="file" accept="image/*" multiple hidden>
+              <span class="photo-add-txt">+ Add photo</span>
+            </label>
+            <p id="photoMsg" class="ferr"></p>
+          </div>
         </div>
         <p id="assetFormMsg" class="msg" role="status" aria-live="polite"></p>
         <div class="modal-foot">

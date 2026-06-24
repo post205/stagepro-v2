@@ -105,6 +105,18 @@ function buildAssetWrite(input) {
   return { row, errors, ok: Object.keys(errors).length === 0 };
 }
 
+// build a unique, filesystem-safe object path for a gear upload.
+// pure: (assetId|null, fileName, now-ms) -> "<id|new>/<ts>-<safeName>"
+function gearPath(assetId, fileName, ts) {
+  const id = String(assetId || 'new').replace(/[^a-z0-9-]/gi, '') || 'new';
+  const base = String(fileName || 'photo')
+    .toLowerCase()
+    .replace(/[^a-z0-9.]+/g, '-')   // collapse non-safe runs to a dash
+    .replace(/^-+|-+$/g, '')        // trim leading/trailing dashes
+    .slice(-60) || 'photo';
+  return id + '/' + (ts || Date.now()) + '-' + base;
+}
+
 // the three capital-bleed stats — pure fn of rows
 function computeStats(rows) {
   const num = (v) => Number(v) || 0;
@@ -153,13 +165,19 @@ function renderRegister(rows) {
     // override note: show owner decision + asking price when a Sell override is set
     const askNote = (r.disposition === 'sell' && r.asking_price != null)
       ? '<span class="ask">asking ' + peso(r.asking_price) + '</span>' : '';
+    const photo = (Array.isArray(r.photos) && r.photos.length) ? r.photos[0] : '';
+    const thumb = photo
+      ? '<img class="a-thumb" src="' + escapeHtml(photo) + '" alt="" loading="lazy">'
+      : '';
     return (
       '<tr data-edit="' + id + '" tabindex="0" role="button" ' +
         'aria-label="Edit ' + escapeHtml(r.name) + '">' +
         '<td class="c-asset">' +
-          '<div class="a-name">' + escapeHtml(r.name) + '</div>' +
-          '<div class="a-sub">' + (Number(r.qty) || 0) + ' owned · ' +
-            escapeHtml(statusDescriptor(r)) + '</div>' +
+          '<div class="a-wrap">' + thumb + '<div>' +
+            '<div class="a-name">' + escapeHtml(r.name) + '</div>' +
+            '<div class="a-sub">' + (Number(r.qty) || 0) + ' owned · ' +
+              escapeHtml(statusDescriptor(r)) + '</div>' +
+          '</div></div>' +
         '</td>' +
         '<td class="c-book">' + peso(r.book_value) + '</td>' +
         '<td class="c-disp">' +
@@ -199,7 +217,7 @@ function renderRegister(rows) {
 if (typeof window !== 'undefined') {
   window.__studio = {
     peso, monthsSince, statusDescriptor, computeStats, renderRegister,
-    buildAssetWrite, todayStr,
+    buildAssetWrite, todayStr, gearPath,
   };
 }
 
@@ -276,7 +294,91 @@ function boot(env) {
     status:  document.getElementById('f-status'),
     idle:    document.getElementById('f-idle'),
     idleWrap:document.getElementById('f-idle-wrap'),
+    fileInput:document.getElementById('f-photos'),
+    thumbs:  document.getElementById('photoThumbs'),
+    addLabel:document.getElementById('photoAddLabel'),
+    photoMsg:document.getElementById('photoMsg'),
   };
+
+  // working copy of the open asset's photo URLs (ordered). Mutated by
+  // upload/remove; written into the row on submit.
+  let modalPhotos = [];
+
+  function setPhotoMsg(text, kind) {
+    if (!modal.photoMsg) return;
+    modal.photoMsg.textContent = text || '';
+    modal.photoMsg.style.color = kind === 'ok' ? 'var(--brandc)' : '';
+  }
+
+  function renderThumbs() {
+    if (!modal.thumbs) return;
+    modal.thumbs.innerHTML = modalPhotos.map((url, i) =>
+      '<div class="photo-thumb">' +
+        '<img src="' + escapeHtml(url) + '" alt="">' +
+        '<button type="button" class="photo-thumb-x" data-rmphoto="' + i + '" ' +
+          'aria-label="Remove photo">×</button>' +
+      '</div>'
+    ).join('');
+  }
+
+  // upload selected files to the gear bucket, append public URLs to modalPhotos
+  async function handlePhotoFiles(files) {
+    if (!files || !files.length) return;
+    const assetId = String(modal.form.elements.id.value || '').trim() || null;
+    modal.addLabel.classList.add('busy');
+    setPhotoMsg('Uploading…', '');
+    let uploaded = 0;
+    for (const file of files) {
+      if (!file.type || !file.type.startsWith('image/')) {
+        setPhotoMsg('Skipped a non-image file.', 'err');
+        continue;
+      }
+      const path = gearPath(assetId, file.name);
+      try {
+        const { error } = await supabase.storage.from('gear')
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (error) {
+          console.error('[studio] photo upload error:', error);
+          setPhotoMsg(error.message || 'Upload failed.', 'err');
+          continue;
+        }
+        const { data } = supabase.storage.from('gear').getPublicUrl(path);
+        if (data && data.publicUrl) { modalPhotos.push(data.publicUrl); uploaded++; }
+      } catch (err) {
+        console.error('[studio] photo upload threw:', err);
+        setPhotoMsg('Network error during upload.', 'err');
+      }
+    }
+    modal.addLabel.classList.remove('busy');
+    modal.fileInput.value = '';
+    renderThumbs();
+    if (uploaded) setPhotoMsg(uploaded + ' photo' + (uploaded > 1 ? 's' : '') + ' added.', 'ok');
+  }
+
+  if (modal.fileInput) {
+    modal.fileInput.addEventListener('change', (e) => {
+      handlePhotoFiles(Array.from(e.target.files || []));
+    });
+  }
+
+  // remove a photo: drop from the array and best-effort delete the object.
+  if (modal.thumbs) {
+    modal.thumbs.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-rmphoto]');
+      if (!btn) return;
+      const i = Number(btn.getAttribute('data-rmphoto'));
+      const url = modalPhotos[i];
+      modalPhotos.splice(i, 1);
+      renderThumbs();
+      setPhotoMsg('', '');
+      // best-effort: strip the object (URL form: .../object/public/gear/<path>)
+      const m = url && url.match(/\/object\/public\/gear\/(.+)$/);
+      if (m) {
+        supabase.storage.from('gear').remove([decodeURIComponent(m[1])])
+          .catch((err) => console.warn('[studio] photo object remove failed:', err));
+      }
+    });
+  }
 
   function setFormMsg(text, kind) {
     if (!modal.msg) return;
@@ -311,8 +413,11 @@ function boot(env) {
   function openModal(row) {
     clearFieldErrors();
     setFormMsg('', '');
+    setPhotoMsg('', '');
     const f = modal.form;
     f.reset();
+    modalPhotos = (row && Array.isArray(row.photos)) ? row.photos.slice() : [];
+    renderThumbs();
     if (row) {
       modal.title.textContent = 'Edit asset';
       f.elements.id.value = row.id;
@@ -367,6 +472,7 @@ function boot(env) {
       setFormMsg('Fix the highlighted fields.', 'err');
       return;
     }
+    row.photos = modalPhotos.slice();
     modal.submit.disabled = true;
     setFormMsg('Saving…', '');
     const id = String(input.id || '').trim();
