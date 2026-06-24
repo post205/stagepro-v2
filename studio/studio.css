@@ -84,8 +84,66 @@ code{background:var(--ink2);border:1px solid var(--line);border-radius:5px;
 .main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:40px 20px}
 .h2{font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-.02em;
   font-size:26px;margin:0 0 8px}
+.sub{color:var(--mute);font-size:14.5px;line-height:1.6;margin:0 0 28px;max-width:60ch}
+
+/* asset register */
+.register{margin-top:4px}
+.empty{font-size:15px;margin:32px 0}
+.empty.err{color:#ff8b8b}
+
+/* capital-bleed stat row */
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 28px;
+}
+.stat{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:18px 20px;min-width:0;
+}
+.stat-k{
+  font-family:'Space Grotesk',sans-serif;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--mute);margin:0 0 10px;
+}
+.stat-v{
+  font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-.02em;
+  font-size:26px;color:var(--fg);line-height:1.05;
+}
+.stat-v.amber{color:var(--amber)}
+.stat-note{font-size:12px;color:var(--mute);margin-top:6px}
+
+/* register table */
+.reg-table{width:100%;border-collapse:collapse;font-size:14.5px}
+.reg-table th{
+  text-align:left;font-family:'Space Grotesk',sans-serif;font-weight:500;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute);
+  padding:0 16px 12px;border-bottom:1px solid var(--line);
+}
+.reg-table td{padding:16px;border-bottom:1px solid var(--line);vertical-align:middle}
+.reg-table tbody tr:last-child td{border-bottom:0}
+.reg-table tbody tr:hover{background:rgba(16,21,30,.5)}
+.c-book{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.c-disp{text-align:right;width:1%;white-space:nowrap}
+th.c-asset{padding-left:16px}
+.a-name{font-weight:600;color:var(--fg)}
+.a-sub{color:var(--mute);font-size:12.5px;margin-top:3px}
+
+/* disposition pills */
+.pill{
+  display:inline-block;font-family:'Space Grotesk',sans-serif;font-weight:600;
+  font-size:12px;letter-spacing:.04em;padding:5px 12px;border-radius:999px;
+  border:1px solid var(--line);
+}
+.pill.keep{color:var(--mute);background:transparent}
+.pill.sell{
+  color:#1a1205;background:var(--amber);border-color:var(--amber);
+  box-shadow:0 6px 20px -8px rgba(245,184,31,.55);
+}
 
 @media (max-width:900px){
   input,textarea,select{font-size:16px!important}
   .email{max-width:34vw}
+  .stats{grid-template-columns:1fr;gap:10px}
+  .stat{padding:14px 16px}
+  .stat-v{font-size:22px}
+  .reg-table{font-size:14px}
+  .reg-table td,.reg-table th{padding-left:12px;padding-right:12px}
 }
