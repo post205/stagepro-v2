@@ -53,6 +53,77 @@
       <p class="muted">Loading…</p>
     </div>
   </main>
+
+  <!-- add / edit asset modal (filled + toggled by studio.js) -->
+  <div id="assetModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="assetModalTitle">
+      <div class="modal-head">
+        <h3 id="assetModalTitle" class="modal-title">Add asset</h3>
+        <button type="button" class="btn-ghost" data-close>Close</button>
+      </div>
+      <form id="assetForm" novalidate>
+        <input type="hidden" name="id">
+        <div class="fgrid">
+          <div class="field fspan">
+            <label class="lbl" for="f-name">Name</label>
+            <input id="f-name" name="name" type="text" autocomplete="off" required>
+            <p class="ferr" data-err="name"></p>
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-category">Category</label>
+            <input id="f-category" name="category" type="text" autocomplete="off"
+                   placeholder="audio · lighting · video · staging">
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-qty">Quantity</label>
+            <input id="f-qty" name="qty" type="number" inputmode="numeric" min="1" step="1" value="1">
+            <p class="ferr" data-err="qty"></p>
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-cost">Acquisition cost (₱)</label>
+            <input id="f-cost" name="acquisition_cost" type="number" inputmode="decimal" min="0" step="0.01">
+            <p class="ferr" data-err="acquisition_cost"></p>
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-salvage">Salvage value (₱)</label>
+            <input id="f-salvage" name="salvage_value" type="number" inputmode="decimal" min="0" step="0.01" value="0">
+            <p class="ferr" data-err="salvage_value"></p>
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-life">Useful life (months)</label>
+            <input id="f-life" name="useful_life_months" type="number" inputmode="numeric" min="1" step="1" value="60">
+            <p class="ferr" data-err="useful_life_months"></p>
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-acquired">Acquired on</label>
+            <input id="f-acquired" name="acquired_on" type="date">
+            <p class="ferr" data-err="acquired_on"></p>
+          </div>
+          <div class="field">
+            <label class="lbl" for="f-status">Status</label>
+            <select id="f-status" name="status">
+              <option value="in_service">In service</option>
+              <option value="idle">Idle</option>
+            </select>
+          </div>
+          <div class="field" id="f-idle-wrap" hidden>
+            <label class="lbl" for="f-idle">Idle since</label>
+            <input id="f-idle" name="idle_since" type="date">
+          </div>
+          <div class="field fspan">
+            <label class="lbl" for="f-notes">Notes</label>
+            <input id="f-notes" name="notes" type="text" autocomplete="off">
+          </div>
+        </div>
+        <p id="assetFormMsg" class="msg" role="status" aria-live="polite"></p>
+        <div class="modal-foot">
+          <button type="button" class="btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-inline" id="assetSubmit">Save asset</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <script src="/env.js"></script>
