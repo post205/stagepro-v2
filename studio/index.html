@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>StagePro · studio</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- not-configured fallback (shown by JS if window.ENV missing) -->
+<div id="noconfig" class="screen" hidden>
+  <div class="card">
+    <h1 class="wordmark">Stage<span>Pro</span></h1>
+    <p class="muted">Studio is not configured. <code>env.js</code> is missing or did not load. Add it at the repo root and reload.</p>
+  </div>
+</div>
+
+<!-- logged-out -->
+<div id="auth" class="screen" hidden>
+  <div class="card">
+    <h1 class="wordmark">Stage<span>Pro</span></h1>
+    <p class="eyebrow">Studio · back office</p>
+    <form id="loginForm" novalidate>
+      <label for="email" class="lbl">Owner email</label>
+      <input id="email" name="email" type="email" inputmode="email" autocomplete="email"
+             placeholder="you@stagepro.ph" required>
+      <button id="loginBtn" type="submit" class="btn">Send magic link</button>
+      <p id="authMsg" class="msg" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</div>
+
+<!-- logged-in -->
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <div class="brand">Stage<span>Pro</span> <em>· studio</em></div>
+    <div class="who">
+      <span id="userEmail" class="email"></span>
+      <button id="signout" class="btn-ghost" type="button">Sign out</button>
+    </div>
+  </header>
+  <main class="main">
+    <h2 class="h2">Asset register</h2>
+    <p class="muted">Coming up — your equipment inventory will live here.</p>
+  </main>
+</div>
+
+<script src="/env.js"></script>
+<script type="module" src="studio.js"></script>
+</body>
+</html>
