@@ -15,6 +15,8 @@ const els = {
   signout:  document.getElementById('signout'),
   register: document.getElementById('register'),
   buyers:   document.getElementById('buyers'),
+  interest: document.getElementById('interest'),
+  interestCount: document.getElementById('interestCount'),
 };
 
 // --- asset register: pure render helpers (testable) ---------------------
@@ -288,12 +290,77 @@ function renderBuyers(buyers, counts) {
   return head + cards;
 }
 
+// --- interest inbox: pure render helpers (testable) ---------------------
+
+// Friendly timestamp for an interest: relative for the last week, then an
+// absolute PH date. Pure fn of (iso string, now Date) — `now` injectable
+// so it's deterministic in tests.
+function interestWhen(iso, now) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const ref = now instanceof Date ? now : new Date();
+  const secs = Math.floor((ref - d) / 1000);
+  if (secs < 60) return 'just now';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return mins + ' min' + (mins === 1 ? '' : 's') + ' ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + ' hr' + (hrs === 1 ? '' : 's') + ' ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + ' day' + (days === 1 ? '' : 's') + ' ago';
+  return d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+// render the interest inbox as an HTML string. Pure fn of the rows array
+// (PostgREST embedded select: each row has buyers{} + assets{} joined).
+// No DOM, no globals — testable. Newest-first ordering is the caller's job.
+function renderInterest(rows, now) {
+  if (!rows || !rows.length) {
+    return '<p class="empty muted">No interest yet. When a buyer taps “I’m interested” on their board, it lands here.</p>';
+  }
+  return rows.map((r) => {
+    const a = r.assets || {};
+    const b = r.buyers || {};
+    const cat = a.category
+      ? '<span class="int-cat">' + escapeHtml(a.category) + '</span>' : '';
+    const contact = b.contact
+      ? '<a class="int-contact" href="' + escapeHtml(contactHref(b.contact)) + '">' +
+          escapeHtml(b.contact) + '</a>'
+      : '<span class="int-contact muted">no contact on file</span>';
+    const msg = (r.message && String(r.message).trim())
+      ? escapeHtml(r.message) : '<span class="muted">—</span>';
+    return (
+      '<div class="int-card">' +
+        '<div class="int-top">' +
+          '<div class="int-asset">' + escapeHtml(a.name || 'Unknown asset') + cat + '</div>' +
+          '<time class="int-when" datetime="' + escapeHtml(r.created_at || '') + '">' +
+            escapeHtml(interestWhen(r.created_at, now)) + '</time>' +
+        '</div>' +
+        '<div class="int-buyer">' +
+          '<span class="int-name">' + escapeHtml(b.name || 'Unknown buyer') + '</span>' +
+          contact +
+        '</div>' +
+        '<div class="int-msg">' + msg + '</div>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+// best-effort actionable href for a buyer contact: mailto: for emails,
+// tel: for anything that looks like a phone, else a bare tel:.
+function contactHref(contact) {
+  const c = String(contact || '').trim();
+  if (/@/.test(c)) return 'mailto:' + c;
+  return 'tel:' + c.replace(/[^\d+]/g, '');
+}
+
 // expose pure helpers for unit checks (no-op in normal browser use)
 if (typeof window !== 'undefined') {
   window.__studio = {
     peso, monthsSince, statusDescriptor, computeStats, renderRegister,
     buildAssetWrite, todayStr, gearPath,
     buyerLink, buildBuyerWrite, renderBuyers, BOARD_BASE,
+    interestWhen, renderInterest, contactHref,
   };
 }
 
@@ -332,6 +399,7 @@ function boot(env) {
       show('app');
       loadRegister();
       loadBuyers();
+      loadInterest();
     } else {
       show('auth');
     }
@@ -676,6 +744,36 @@ function boot(env) {
     } catch (e) {
       console.error('[studio] loadBuyers threw:', e);
       els.buyers.innerHTML = '<p class="empty err">Network error loading buyers.</p>';
+    }
+  }
+
+  // --- interest inbox: which buyers want which gear --------------------
+
+  // fetch interests with buyer + asset joined (newest first) and paint.
+  // RLS: only the authenticated owner can SELECT interests; anon is blocked.
+  async function loadInterest() {
+    if (!els.interest) return;
+    try {
+      const { data, error } = await supabase
+        .from('interests')
+        .select('id, message, created_at, buyers(name, contact), assets(name, category)')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('[studio] interests query error:', error);
+        els.interest.innerHTML =
+          '<p class="empty err">Could not load interest. ' +
+          escapeHtml(error.message || '') + '</p>';
+        return;
+      }
+      const rows = data || [];
+      if (els.interestCount) {
+        els.interestCount.textContent = rows.length ? String(rows.length) : '';
+        els.interestCount.hidden = !rows.length;
+      }
+      els.interest.innerHTML = renderInterest(rows);
+    } catch (e) {
+      console.error('[studio] loadInterest threw:', e);
+      els.interest.innerHTML = '<p class="empty err">Network error loading interest.</p>';
     }
   }
 
