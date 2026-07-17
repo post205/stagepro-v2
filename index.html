@@ -83,6 +83,9 @@ tailwind.config={theme:{extend:{
      sweeps drive the mix. A section-wide light follows the pointer. */
   #actSound{cursor:pointer;touch-action:pan-y}
   #actSound.live{cursor:crosshair}
+  /* audio-reactive dither field: the music drives a dot matrix across the room */
+  .sound-dither{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.5;transition:opacity .6s}
+  #actSound.live .sound-dither{opacity:1}
   #actSound:focus-visible{outline:2px solid #2e8bf0;outline-offset:-4px}
   /* cursor-following "click to play" cue — disappears once playing */
   .sf-cue{position:absolute;left:var(--mx,50%);top:var(--my,52%);transform:translate(-50%,-50%);z-index:4;display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;background:rgba(46,139,240,.18);border:1px solid rgba(124,192,255,.55);color:#eaf3ff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.45);animation:cuepulse 1.8s ease-in-out infinite}
@@ -270,6 +273,7 @@ tailwind.config={theme:{extend:{
 
 <!-- ACT I — SOUND -->
 <section class="act bg-ink2" id="actSound" role="button" tabindex="0" aria-label="Interactive sound. Click or tap anywhere, then move to pan and shape the mix.">
+  <canvas class="sound-dither" id="soundDither" aria-hidden="true"></canvas>
   <div class="act-word" aria-hidden="true">Sound</div>
   <div class="sound-spot" id="soundSpot"></div>
   <div class="sf-cue" id="sfCue" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Click anywhere to play</div>
@@ -603,6 +607,64 @@ tailwind.config={theme:{extend:{
     }
     // Pause when the act scrolls out of view so the sound doesn't trail the page.
     if('IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting&&started&&!spAudio.paused){spAudio.pause();sect.classList.remove('live');eq.classList.remove('live');}});},{threshold:0.12}).observe(sect);}
+  }
+
+  /* ---- audio-reactive dither field: the music warps a dot matrix across the room.
+     Canvas 2D (not WebGPU) and it only runs while the act is on screen, so tablets cope. ---- */
+  var dCan=document.getElementById('soundDither'), dCtx=dCan&&dCan.getContext('2d');
+  var dW=0,dH=0,dRaf=null,dBins=null,dOn=false,dStep=16;
+  function dSize(){
+    if(!dCan||!sect||!dCtx)return;
+    var r=sect.getBoundingClientRect(), dpr=Math.min(1.75,window.devicePixelRatio||1);
+    dW=Math.max(1,Math.round(r.width)); dH=Math.max(1,Math.round(r.height));
+    dCan.width=Math.round(dW*dpr); dCan.height=Math.round(dH*dpr);
+    dCan.style.width=dW+'px'; dCan.style.height=dH+'px';
+    dCtx.setTransform(dpr,0,0,dpr,0,0);
+    dStep = dW<760 ? 22 : 16;                 // coarser grid on small screens
+  }
+  function dFrame(ts){
+    if(!dCtx){return;}
+    var t=(ts||0)/1000;
+    dCtx.clearRect(0,0,dW,dH);
+    if(analyser){
+      if(!dBins||dBins.length!==analyser.frequencyBinCount) dBins=new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(dBins);
+    }
+    // whole-field energy, not a left-to-right spectrum: the room pulses as one.
+    var lvl=0, bass=0;
+    if(dBins&&dBins.length){
+      var sum=0,i; for(i=0;i<dBins.length;i++) sum+=dBins[i];
+      lvl=sum/dBins.length/255;
+      var bn=Math.max(1,dBins.length>>3), bsum=0; for(i=0;i<bn;i++) bsum+=dBins[i];
+      bass=bsum/bn/255;
+    }
+    var px=(parseFloat(sect.style.getPropertyValue('--mx'))||50)/100*dW;
+    var py=(parseFloat(sect.style.getPropertyValue('--my'))||50)/100*dH;
+    var cx=dW/2, cy=dH/2, s=dStep, R=s*0.44;
+    for(var y=s/2;y<dH;y+=s){
+      for(var x=s/2;x<dW;x+=s){
+        var ox=x-cx, oy=y-cy, rc=Math.sqrt(ox*ox+oy*oy);
+        var rings=Math.sin(rc*0.042 - t*2.1 + bass*7);           // fluid rings, bass-driven
+        var wave=0.5+0.5*Math.sin(t*0.9 + x*0.010 + y*0.013);    // slow drift so it lives at rest
+        var dx=x-px, dy=y-py, pd=Math.sqrt(dx*dx+dy*dy);
+        var pointer = pd<400 ? (1-pd/400) : 0;
+        var a = 0.06 + lvl*0.6*(0.45+0.55*wave)
+                     + (rings>0?rings:0)*0.3*(0.25+lvl)
+                     + pointer*pointer*0.5;
+        if(a<0.05) continue; if(a>1) a=1;
+        dCtx.beginPath();
+        dCtx.arc(x,y,R*(0.3+a*0.9),0,6.2832);
+        dCtx.fillStyle = a>0.72 ? 'rgba(245,184,31,'+(a*0.85)+')' : 'rgba(124,192,255,'+(a*0.8)+')';
+        dCtx.fill();
+      }
+    }
+    dRaf=requestAnimationFrame(dFrame);
+  }
+  function dStart(){ if(dOn||!dCtx)return; dOn=true; dSize(); dRaf=requestAnimationFrame(dFrame); }
+  function dStop(){ dOn=false; if(dRaf){cancelAnimationFrame(dRaf);dRaf=null;} if(dCtx)dCtx.clearRect(0,0,dW,dH); }
+  if(dCan&&dCtx&&'IntersectionObserver' in window){
+    new IntersectionObserver(function(es){es.forEach(function(en){ en.isIntersecting?dStart():dStop(); });},{threshold:0.05}).observe(sect);
+    window.addEventListener('resize',function(){ if(dOn) dSize(); });
   }
 </script>
 
