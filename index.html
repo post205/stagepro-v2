@@ -84,12 +84,13 @@ tailwind.config={theme:{extend:{
   #actSound{cursor:pointer;touch-action:pan-y}
   #actSound.live{cursor:crosshair}
   /* audio-reactive dither field: the music drives a dot matrix across the room */
-  .sound-dither{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.5;transition:opacity .6s}
+  .sound-dither{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.55;transition:opacity .6s}
   #actSound.live .sound-dither{opacity:1}
+  /* scrim: keeps the headline + helper copy readable over the fluid field */
+  #actSound::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(56% 52% at 50% 46%,rgba(6,8,12,.62),rgba(6,8,12,.16) 62%,transparent 80%)}
   #actSound:focus-visible{outline:2px solid #2e8bf0;outline-offset:-4px}
   /* cursor-following "click to play" cue — disappears once playing */
-  .sf-cue{position:absolute;left:var(--mx,50%);top:var(--my,52%);transform:translate(-50%,-50%);z-index:4;display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:999px;background:rgba(46,139,240,.18);border:1px solid rgba(124,192,255,.55);color:#eaf3ff;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.45);animation:cuepulse 1.8s ease-in-out infinite}
-  .sf-cue span{font-size:10px;opacity:.9}
+  .sf-cue{position:absolute;left:var(--mx,50%);top:var(--my,52%);transform:translate(-50%,-50%);z-index:4;display:inline-flex;align-items:center;padding:10px 16px;background:rgba(6,8,12,.78);border:1px solid rgba(124,192,255,.55);color:#eaf3ff;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11.5px;font-weight:600;letter-spacing:.09em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,.45);animation:cuepulse 1.8s ease-in-out infinite}
   #actSound.live .sf-cue{opacity:0;visibility:hidden;transition:opacity .3s}
   @keyframes cuepulse{0%,100%{box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 0 rgba(46,139,240,.5)}50%{box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 16px rgba(46,139,240,0)}}
   .sound-spot{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.5;transition:opacity .5s;background:radial-gradient(540px circle at var(--mx,50%) var(--my,50%),rgba(46,139,240,.26),rgba(124,192,255,.07) 44%,transparent 68%);mix-blend-mode:screen}
@@ -276,7 +277,7 @@ tailwind.config={theme:{extend:{
   <canvas class="sound-dither" id="soundDither" aria-hidden="true"></canvas>
   <div class="act-word" aria-hidden="true">Sound</div>
   <div class="sound-spot" id="soundSpot"></div>
-  <div class="sf-cue" id="sfCue" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Click anywhere to play</div>
+  <div class="sf-cue" id="sfCue" aria-hidden="true">[:: CLICK TO PLAY &middot; ENABLE AUDIO ::]</div>
   <div class="sf-readout"><span id="sfPan">Center</span> &middot; <b id="sfTone">Full</b></div>
   <!-- the room itself: a full-width spectrum across the section floor -->
   <div class="eq" id="eq" aria-hidden="true">
@@ -288,7 +289,7 @@ tailwind.config={theme:{extend:{
     <p class="mt-5 text-mute max-w-md mx-auto reveal" data-d="2">Premium indoor, concert-grade outdoor, fixed-install. Skip the spec sheet. Feel it.</p>
     <div class="mt-7 flex items-center justify-center gap-4 reveal" data-d="3">
       <button id="muteBtn" type="button" class="mute-btn" aria-pressed="false" aria-label="Mute or unmute the sound"><svg class="ic ic-on" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a9 9 0 0 1 0 14"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg> <span id="muteLabel">Sound on</span></button>
-      <div class="text-xs text-mute max-w-[15rem] text-left">Click anywhere &mdash; or tap on a tablet &mdash; then move: <b class="text-[#7cc0ff] font-semibold">left&ndash;right</b> pans the room, <b class="text-[#7cc0ff] font-semibold">up&ndash;down</b> lifts airy to full.</div>
+      <div class="text-xs text-mute max-w-[15rem] text-left">Click anywhere &mdash; or tap on a tablet &mdash; then move: <b class="text-[#7cc0ff] font-semibold">left&ndash;right</b> pans, <b class="text-[#7cc0ff] font-semibold">up&ndash;down</b> lifts airy to full. <b class="text-[#7cc0ff] font-semibold">Hold</b> for speed.</div>
     </div>
     <audio id="spAudio" src="assets/sound.mp3" loop preload="none"></audio>
   </div>
@@ -609,48 +610,136 @@ tailwind.config={theme:{extend:{
     if('IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting&&started&&!spAudio.paused){spAudio.pause();sect.classList.remove('live');eq.classList.remove('live');}});},{threshold:0.12}).observe(sect);}
   }
 
-  /* ---- audio-reactive dither field: the music warps a dot matrix across the room.
-     Canvas 2D (not WebGPU) and it only runs while the act is on screen, so tablets cope. ---- */
-  var dCan=document.getElementById('soundDither'), dCtx=dCan&&dCan.getContext('2d');
-  var dW=0,dH=0,dRaf=null,dBins=null,dOn=false,dStep=16;
-  function dSize(){
-    if(!dCan||!sect||!dCtx)return;
-    var r=sect.getBoundingClientRect(), dpr=Math.min(1.75,window.devicePixelRatio||1);
-    dW=Math.max(1,Math.round(r.width)); dH=Math.max(1,Math.round(r.height));
-    dCan.width=Math.round(dW*dpr); dCan.height=Math.round(dH*dpr);
-    dCan.style.width=dW+'px'; dCan.style.height=dH+'px';
-    dCtx.setTransform(dpr,0,0,dpr,0,0);
-    dStep = dW<760 ? 22 : 16;                 // coarser grid on small screens
-  }
-  function dFrame(ts){
-    if(!dCtx){return;}
-    var t=(ts||0)/1000;
-    dCtx.clearRect(0,0,dW,dH);
+  /* ---- AstroDither, StagePro edition: a WebGL fluid dither field the music drives.
+     Domain-warped noise "fluid" -> halftone dots with per-channel RGB fringe, in
+     ink/brand-blue/amber. Pointer stirs the fluid; press-and-hold pushes it faster.
+     WebGL1 (not WebGPU) so tablets run it; falls back to a Canvas-2D dot field. ---- */
+  var dCan=document.getElementById('soundDither');
+  var dGL=null, dCtx=null;
+  try{ dGL=dCan&&(dCan.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:false})||dCan.getContext('experimental-webgl',{alpha:true})); }catch(e){}
+  if(!dGL&&dCan){ try{ dCtx=dCan.getContext('2d'); }catch(e){} }
+  var dW=0,dH=0,dRaf=null,dBins=null,dOn=false,dStep=16,dDpr=1;
+  var dHold=false,dSpd=1,dLvl=0,dBass=0;
+  var dReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // press-and-hold anywhere in the act = speed
+  sect.addEventListener('pointerdown',function(){dHold=true;});
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){sect.addEventListener(ev,function(){dHold=false;});});
+  window.addEventListener('pointerup',function(){dHold=false;});
+  function dAudio(){
+    var lvl=0,bass=0;
     if(analyser){
       if(!dBins||dBins.length!==analyser.frequencyBinCount) dBins=new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(dBins);
-    }
-    // whole-field energy, not a left-to-right spectrum: the room pulses as one.
-    var lvl=0, bass=0;
-    if(dBins&&dBins.length){
       var sum=0,i; for(i=0;i<dBins.length;i++) sum+=dBins[i];
       lvl=sum/dBins.length/255;
       var bn=Math.max(1,dBins.length>>3), bsum=0; for(i=0;i<bn;i++) bsum+=dBins[i];
       bass=bsum/bn/255;
     }
-    var px=(parseFloat(sect.style.getPropertyValue('--mx'))||50)/100*dW;
-    var py=(parseFloat(sect.style.getPropertyValue('--my'))||50)/100*dH;
+    dLvl+=(lvl-dLvl)*0.14; dBass+=(bass-dBass)*0.25;          // smoothed, so the fluid breathes
+    dSpd+=(((dHold?3.4:1)+dLvl*0.8)-dSpd)*0.05;
+  }
+  function dPtr(){
+    var mx=(parseFloat(sect.style.getPropertyValue('--mx'))||50)/100;
+    var my=(parseFloat(sect.style.getPropertyValue('--my'))||50)/100;
+    return [mx,my];
+  }
+  function dSize(){
+    if(!dCan||!sect)return;
+    var r=sect.getBoundingClientRect();
+    dDpr=Math.min(1.5,window.devicePixelRatio||1);
+    dW=Math.max(1,Math.round(r.width)); dH=Math.max(1,Math.round(r.height));
+    dCan.width=Math.round(dW*dDpr); dCan.height=Math.round(dH*dDpr);
+    dCan.style.width=dW+'px'; dCan.style.height=dH+'px';
+    if(dGL) dGL.viewport(0,0,dCan.width,dCan.height);
+    else if(dCtx) dCtx.setTransform(dDpr,0,0,dDpr,0,0);
+    dStep = dW<760 ? 22 : 16;
+  }
+  /* -- WebGL path -- */
+  var dProg=null,dUni={};
+  function dCompile(){
+    var vs='attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+    var fs=''
+      +'precision highp float;'
+      +'uniform vec2 u_res;uniform float u_t;uniform vec2 u_ptr;'
+      +'uniform float u_lvl;uniform float u_bass;uniform float u_spd;uniform float u_cell;'
+      +'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}'
+      +'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);'
+      +' return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}'
+      +'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p=p*2.03+vec2(19.7);a*=.5;}return v;}'
+      +'float ht(vec2 fc,float v,vec2 off){vec2 g=mod(fc+off,u_cell)-u_cell*.5;'
+      +' float r=u_cell*.48*clamp(v,0.,1.);return smoothstep(r,r-1.4,length(g));}'
+      +'void main(){'
+      +' vec2 uv=gl_FragCoord.xy/u_res;'
+      +' vec2 asp=vec2(u_res.x/u_res.y,1.);'
+      +' vec2 p=uv*asp*3.;'
+      +' vec2 pp=vec2(u_ptr.x,1.-u_ptr.y)*asp*3.;'
+      +' vec2 d=p-pp;float pd=length(d);'
+      +' float stir=exp(-pd*1.5);'
+      +' vec2 swirl=vec2(-d.y,d.x)*stir*1.3;'
+      +' float w1=fbm(p*.85+u_t*vec2(.20,.16)*u_spd+swirl);'
+      +' float w2=fbm(p*1.05-u_t*vec2(.13,.22)*u_spd+w1*2.3+u_bass*1.4);'
+      +' float v=fbm(p*1.25+w2*2.7+swirl*.8+u_t*vec2(.05,-.04)*u_spd);'
+      +' v=smoothstep(.30,.85,v+stir*.30+u_bass*.18);'   // ridges out of darkness, not a wall of light
+      +' v=v*(.38+.95*u_lvl)+stir*.20+u_lvl*.18;'        // music opens the whole room; idle stays quiet
+      +' v=clamp(v,0.,1.);'
+      +' float ox=u_cell*.12;'
+      +' float mr=ht(gl_FragCoord.xy,v,vec2(ox,ox*.4));'
+      +' float mg=ht(gl_FragCoord.xy,v,vec2(0.,-ox*.5));'
+      +' float mb=ht(gl_FragCoord.xy,v,vec2(-ox,ox*.4));'
+      +' vec3 blue=vec3(.180,.545,.941);'
+      +' vec3 light=vec3(.486,.753,1.0);'
+      +' vec3 amber=vec3(.961,.722,.122);'
+      +' vec3 tint=mix(blue,light,smoothstep(.25,.85,v));'
+      +' tint=mix(tint,amber,smoothstep(.72,.94,v)*(.30+.70*u_bass));'
+      +' vec3 col=tint*vec3(mr,mg,mb);'
+      +' float al=max(mr,max(mg,mb));'
+      +' gl_FragColor=vec4(col,al*.90);'
+      +'}';
+    function sh(type,src){var s=dGL.createShader(type);dGL.shaderSource(s,src);dGL.compileShader(s);
+      if(!dGL.getShaderParameter(s,dGL.COMPILE_STATUS)){console.warn('[dither] shader:',dGL.getShaderInfoLog(s));return null;}return s;}
+    var v=sh(dGL.VERTEX_SHADER,vs),f=sh(dGL.FRAGMENT_SHADER,fs);
+    if(!v||!f)return false;
+    dProg=dGL.createProgram();dGL.attachShader(dProg,v);dGL.attachShader(dProg,f);dGL.linkProgram(dProg);
+    if(!dGL.getProgramParameter(dProg,dGL.LINK_STATUS)){console.warn('[dither] link:',dGL.getProgramInfoLog(dProg));dProg=null;return false;}
+    dGL.useProgram(dProg);
+    var buf=dGL.createBuffer();dGL.bindBuffer(dGL.ARRAY_BUFFER,buf);
+    dGL.bufferData(dGL.ARRAY_BUFFER,new Float32Array([-1,-1, 3,-1, -1,3]),dGL.STATIC_DRAW);
+    var loc=dGL.getAttribLocation(dProg,'a');dGL.enableVertexAttribArray(loc);dGL.vertexAttribPointer(loc,2,dGL.FLOAT,false,0,0);
+    ['u_res','u_t','u_ptr','u_lvl','u_bass','u_spd','u_cell'].forEach(function(n){dUni[n]=dGL.getUniformLocation(dProg,n);});
+    dGL.enable(dGL.BLEND);dGL.blendFunc(dGL.SRC_ALPHA,dGL.ONE_MINUS_SRC_ALPHA);
+    dGL.clearColor(0,0,0,0);
+    return true;
+  }
+  function dGlFrame(ts){
+    var t=(ts||0)/1000;
+    dAudio();
+    var p=dPtr();
+    dGL.clear(dGL.COLOR_BUFFER_BIT);
+    dGL.uniform2f(dUni.u_res,dCan.width,dCan.height);
+    dGL.uniform1f(dUni.u_t,t);
+    dGL.uniform2f(dUni.u_ptr,p[0],p[1]);
+    dGL.uniform1f(dUni.u_lvl,dLvl);
+    dGL.uniform1f(dUni.u_bass,dBass);
+    dGL.uniform1f(dUni.u_spd,dSpd);
+    dGL.uniform1f(dUni.u_cell,(dW<760?11:8)*dDpr);
+    dGL.drawArrays(dGL.TRIANGLES,0,3);
+    if(!dReduced) dRaf=requestAnimationFrame(dGlFrame);
+  }
+  /* -- Canvas-2D fallback (no WebGL) -- */
+  function d2dFrame(ts){
+    var t=(ts||0)/1000;
+    dCtx.clearRect(0,0,dW,dH);
+    dAudio();
+    var p=dPtr(), px=p[0]*dW, py=p[1]*dH;
     var cx=dW/2, cy=dH/2, s=dStep, R=s*0.44;
     for(var y=s/2;y<dH;y+=s){
       for(var x=s/2;x<dW;x+=s){
         var ox=x-cx, oy=y-cy, rc=Math.sqrt(ox*ox+oy*oy);
-        var rings=Math.sin(rc*0.042 - t*2.1 + bass*7);           // fluid rings, bass-driven
-        var wave=0.5+0.5*Math.sin(t*0.9 + x*0.010 + y*0.013);    // slow drift so it lives at rest
+        var rings=Math.sin(rc*0.042 - t*2.1 + dBass*7);
+        var wave=0.5+0.5*Math.sin(t*0.9*dSpd + x*0.010 + y*0.013);
         var dx=x-px, dy=y-py, pd=Math.sqrt(dx*dx+dy*dy);
         var pointer = pd<400 ? (1-pd/400) : 0;
-        var a = 0.06 + lvl*0.6*(0.45+0.55*wave)
-                     + (rings>0?rings:0)*0.3*(0.25+lvl)
-                     + pointer*pointer*0.5;
+        var a = 0.06 + dLvl*0.6*(0.45+0.55*wave) + (rings>0?rings:0)*0.3*(0.25+dLvl) + pointer*pointer*0.5;
         if(a<0.05) continue; if(a>1) a=1;
         dCtx.beginPath();
         dCtx.arc(x,y,R*(0.3+a*0.9),0,6.2832);
@@ -658,11 +747,19 @@ tailwind.config={theme:{extend:{
         dCtx.fill();
       }
     }
-    dRaf=requestAnimationFrame(dFrame);
+    if(!dReduced) dRaf=requestAnimationFrame(d2dFrame);
   }
-  function dStart(){ if(dOn||!dCtx)return; dOn=true; dSize(); dRaf=requestAnimationFrame(dFrame); }
-  function dStop(){ dOn=false; if(dRaf){cancelAnimationFrame(dRaf);dRaf=null;} if(dCtx)dCtx.clearRect(0,0,dW,dH); }
-  if(dCan&&dCtx&&'IntersectionObserver' in window){
+  function dStart(){
+    if(dOn||(!dGL&&!dCtx))return;
+    dOn=true; dSize();
+    if(dGL&&!dProg&&!dCompile()){ dGL=null; try{dCtx=dCan.getContext('2d');}catch(e){} if(!dCtx){dOn=false;return;} }
+    dRaf=requestAnimationFrame(dGL?dGlFrame:d2dFrame);
+  }
+  function dStop(){
+    dOn=false; if(dRaf){cancelAnimationFrame(dRaf);dRaf=null;}
+    if(dGL){dGL.clear(dGL.COLOR_BUFFER_BIT);} else if(dCtx){dCtx.clearRect(0,0,dW,dH);}
+  }
+  if(dCan&&(dGL||dCtx)&&'IntersectionObserver' in window){
     new IntersectionObserver(function(es){es.forEach(function(en){ en.isIntersecting?dStart():dStop(); });},{threshold:0.05}).observe(sect);
     window.addEventListener('resize',function(){ if(dOn) dSize(); });
   }
