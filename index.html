@@ -93,6 +93,25 @@ tailwind.config={theme:{extend:{
   #top .sound-dither{opacity:.42;mix-blend-mode:screen}
   #actStage .sound-dither{opacity:.5}
   #quote .sound-dither{opacity:.45;mix-blend-mode:screen}
+  /* enter gate (loader) */
+  #enterGate{position:fixed;inset:0;z-index:400;background:#06080c;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .75s ease}
+  #enterGate[hidden]{display:none}
+  #enterGate.leaving{opacity:0;pointer-events:none}
+  #enterGate .sound-dither{opacity:.8}
+  .eg-in{position:relative;z-index:2;text-align:center;padding:24px}
+  .eg-brand{font-size:clamp(3rem,9vw,6.5rem);color:#eef2f7;line-height:.9;text-transform:uppercase}
+  .eg-tag{margin-top:14px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;letter-spacing:.22em;color:#8b97a8}
+  .eg-boot{margin-top:34px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;letter-spacing:.12em;color:#7cc0ff}
+  .eg-boot[hidden]{display:none}
+  .eg-enter{margin-top:30px;display:inline-flex;padding:12px 20px;background:rgba(6,8,12,.78);border:1px solid rgba(124,192,255,.55);color:#eaf3ff;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;font-weight:600;letter-spacing:.09em;cursor:pointer;animation:cuepulse 1.8s ease-in-out infinite}
+  .eg-enter[hidden]{display:none}
+  /* terminal HUD */
+  .hud{position:fixed;left:18px;bottom:16px;z-index:120;display:flex;gap:16px;align-items:center;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#5b6675}
+  .hud[hidden]{display:none}
+  .hud b{color:#7cc0ff;font-weight:600}
+  .hud button{background:none;border:1px solid #2a3546;color:#7cc0ff;font:inherit;letter-spacing:inherit;padding:4px 9px;cursor:pointer}
+  .hud button:hover{background:rgba(46,139,240,.12)}
+  @media(max-width:768px){.hud{display:none}}
   /* scrim: keeps the headline + helper copy readable over the fluid field */
   #actSound::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(56% 52% at 50% 46%,rgba(6,8,12,.62),rgba(6,8,12,.16) 62%,transparent 80%)}
   #actSound:focus-visible{outline:2px solid #2e8bf0;outline-offset:-4px}
@@ -229,6 +248,25 @@ tailwind.config={theme:{extend:{
 </style>
 </head>
 <body class="bg-ink text-[#eef2f7] font-body antialiased">
+
+<!-- ===== ENTER GATE (loader): boot -> click to enter + enable audio.
+     Unlocks sound for the whole visit; shown once per session. ===== -->
+<div id="enterGate" class="dither-host" hidden>
+  <canvas class="sound-dither" aria-hidden="true"></canvas>
+  <div class="eg-in">
+    <div class="eg-brand anton">STAGEPRO</div>
+    <div class="eg-tag">[SOUND. LIGHT. STAGE. NATIONWIDE.]</div>
+    <div class="eg-boot" id="egBoot">RIGGING THE ROOM &middot; 00%</div>
+    <button type="button" class="eg-enter" id="egEnter" hidden>[:: CLICK TO ENTER + ENABLE AUDIO ::]</button>
+  </div>
+</div>
+
+<!-- terminal HUD: elapsed / speed / sound toggle (desktop) -->
+<div class="hud" id="hud" hidden>
+  <span id="hudTime">T+00:00:00</span>
+  <span id="hudSpd"><b>1.0x</b> &middot; HOLD = SPEED</span>
+  <button type="button" id="hudSnd" aria-pressed="false">SND OFF</button>
+</div>
 <div class="grain"></div>
 
 <!-- HEADER -->
@@ -611,8 +649,8 @@ tailwind.config={theme:{extend:{
       muteBtn.addEventListener('pointerdown',function(e){e.stopPropagation();});
       muteBtn.addEventListener('click',function(){if(!started){startSound();return;}setMute(!muted);});
     }
-    // Pause when the act scrolls out of view so the sound doesn't trail the page.
-    if('IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting&&started&&!spAudio.paused){spAudio.pause();sect.classList.remove('live');eq.classList.remove('live');}});},{threshold:0.12}).observe(sect);}
+    // NOTE: no scroll-away pause anymore — the gate authorizes audio for the
+    // visit, so the track is the page's soundtrack (mute lives in the HUD).
   }
 
   /* ---- AstroDither, StagePro edition: a WebGL fluid dither field the music drives.
@@ -623,6 +661,7 @@ tailwind.config={theme:{extend:{
   // Stage, CTA). Speed accumulates into sim-time so press-and-hold accelerates
   // smoothly instead of jumping phase (the old u_t*u_spd bug). Only on-screen
   // instances animate; each holds its own small GL context.
+  var DHUD={};   // per-field speed, read by the terminal HUD
   function makeDither(host, opts){
     if(!host) return;
     opts = opts || {};
@@ -728,6 +767,7 @@ tailwind.config={theme:{extend:{
       var dt=Math.min(.05,Math.max(0,((ts||0)-lastTs)/1000)); lastTs=ts||0;
       audioPull();
       simT+=dt*spd;
+      DHUD[host.id||'gate']=spd;   // the HUD shows the fastest live field
     }
     function glFrame(ts){
       tick(ts);
@@ -781,10 +821,65 @@ tailwind.config={theme:{extend:{
       window.addEventListener('resize',function(){ if(on) size(); });
     }else{ start(); }
   }
-  makeDither(sect,{analyser:function(){return analyser;},gain:1});      // Act I — the music drives it
-  makeDither(document.getElementById('top'),{gain:1.12});               // hero — over the film
-  makeDither(document.getElementById('actStage'),{gain:.92});           // Act III — quiet build
-  makeDither(document.getElementById('quote'),{gain:1.0});              // CTA — the finale
+  // Once the gate unlocks audio, the WHOLE page dances to it — every field
+  // reads the same analyser. Act I stays the instrument (pan/filter/hold).
+  var AN=function(){return analyser;};
+  makeDither(sect,{analyser:AN,gain:1});                                // Act I — the centerpiece
+  makeDither(document.getElementById('top'),{analyser:AN,gain:1.12});   // hero — over the film
+  makeDither(document.getElementById('actStage'),{analyser:AN,gain:.92});
+  makeDither(document.getElementById('quote'),{analyser:AN,gain:1.0});  // CTA — the finale
+
+  /* ---- enter gate (loader) + terminal HUD ---- */
+  var gate=document.getElementById('enterGate'), egBoot=document.getElementById('egBoot'), egEnter=document.getElementById('egEnter');
+  var hud=document.getElementById('hud'), hudTime=document.getElementById('hudTime'), hudSpd=document.getElementById('hudSpd'), hudSnd=document.getElementById('hudSnd');
+  var hudT0=null;
+  function hudShow(){ if(hud) hud.hidden=false; if(hudT0==null) hudT0=performance.now(); }
+  // reflect mute state in the HUD as well as the in-act pill
+  var _setMute=setMute;
+  setMute=function(m){ _setMute(m); if(hudSnd){ hudSnd.textContent=m?'SND OFF':'SND ON'; hudSnd.setAttribute('aria-pressed',m?'true':'false'); } };
+  if(hudSnd) hudSnd.addEventListener('click',function(){ if(!started){ startSound(); return; } setMute(!muted); });
+  function two(n){ return (n<10?'0':'')+n; }
+  setInterval(function(){
+    if(!hud||hud.hidden) return;
+    if(hudT0!=null){
+      var s=(performance.now()-hudT0)/1000;
+      hudTime.textContent='T+'+two(Math.floor(s/60))+':'+two(Math.floor(s%60))+':'+two(Math.floor((s*100)%100));
+    }
+    var m=1; for(var k in DHUD) if(DHUD[k]>m) m=DHUD[k];
+    hudSpd.innerHTML='<b>'+m.toFixed(1)+'x</b>'+(m<1.15?' &middot; HOLD = SPEED':'');
+  },90);
+  // the gate itself: boot count -> enter -> unlock audio for the whole visit
+  var gateSeen=false;
+  try{ gateSeen=sessionStorage.getItem('sp_entered')==='1'; }catch(e){}
+  if(gate&&egBoot&&egEnter&&!gateSeen){
+    gate.hidden=false;
+    document.documentElement.style.overflow='hidden';
+    makeDither(gate,{gain:1.15});
+    var egReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // time-based, not tick-based: finishes on schedule even if a slow GPU
+    // (or software GL) starves the interval.
+    var bootT0=performance.now(), bootDur=egReduced?150:1300;
+    var bootTimer=setInterval(function(){
+      var p100=Math.min(100,Math.round((performance.now()-bootT0)/bootDur*100));
+      egBoot.textContent='RIGGING THE ROOM · '+two(p100)+'%';
+      if(p100>=100){ clearInterval(bootTimer); egBoot.hidden=true; egEnter.hidden=false; try{egEnter.focus();}catch(e){} }
+    },60);
+    var entered=false;
+    function egGo(){
+      if(entered||egEnter.hidden) return;   // not until the boot finishes
+      entered=true;
+      try{ sessionStorage.setItem('sp_entered','1'); }catch(e){}
+      startSound();                          // the gesture that unlocks the visit
+      hudShow();
+      gate.classList.add('leaving');
+      document.documentElement.style.overflow='';
+      setTimeout(function(){ gate.hidden=true; },780);   // hidden -> its field stops
+    }
+    gate.addEventListener('click',egGo);
+    gate.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); egGo(); } });
+  } else {
+    hudShow();   // returning visitor this session: HUD up, audio stays opt-in
+  }
 </script>
 
 <!-- ============================================================
