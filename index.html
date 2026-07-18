@@ -86,6 +86,13 @@ tailwind.config={theme:{extend:{
   /* audio-reactive dither field: the music drives a dot matrix across the room */
   .sound-dither{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.55;transition:opacity .6s}
   #actSound.live .sound-dither{opacity:1}
+  /* the field system, page-wide: hold-to-speed needs long-press not to trigger
+     selection callouts (iOS) — hence user-select off on field hosts. #quote is
+     deliberately NOT a host class: its chat inputs need normal selection. */
+  .dither-host{touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  #top .sound-dither{opacity:.42;mix-blend-mode:screen}
+  #actStage .sound-dither{opacity:.5}
+  #quote .sound-dither{opacity:.45;mix-blend-mode:screen}
   /* scrim: keeps the headline + helper copy readable over the fluid field */
   #actSound::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(56% 52% at 50% 46%,rgba(6,8,12,.62),rgba(6,8,12,.16) 62%,transparent 80%)}
   #actSound:focus-visible{outline:2px solid #2e8bf0;outline-offset:-4px}
@@ -240,7 +247,7 @@ tailwind.config={theme:{extend:{
 </header>
 
 <!-- HERO -->
-<section id="top" class="relative min-h-[100svh] flex items-center">
+<section id="top" class="dither-host relative min-h-[100svh] flex items-center">
   <div class="reel">
     <video class="hv" autoplay muted loop playsinline preload="auto" poster="assets/hero-01.jpg">
       <source src="assets/hero.mp4" type="video/mp4">
@@ -250,6 +257,7 @@ tailwind.config={theme:{extend:{
   <div class="spot" id="heroSpot"></div>
   <div class="glow" style="background:#2e8bf0;top:-10vw;right:-6vw"></div>
   <div class="glow" style="background:#f5b81f;bottom:-12vw;left:-6vw;opacity:.12"></div>
+  <canvas class="sound-dither" aria-hidden="true"></canvas>
   <div class="relative w-full max-w-7xl mx-auto px-5 sm:px-8 pt-28">
     <p class="eyebrow text-[#b9bcc2] text-xs sm:text-sm mb-5 reveal in">Engineering Solutions &middot; Since 1998</p>
     <h1 class="anton uppercase text-white leading-[0.86] text-[15vw] sm:text-[12vw] lg:text-[9.5rem]">
@@ -273,7 +281,7 @@ tailwind.config={theme:{extend:{
 </section>
 
 <!-- ACT I — SOUND -->
-<section class="act bg-ink2" id="actSound" role="button" tabindex="0" aria-label="Interactive sound. Click or tap anywhere, then move to pan and shape the mix.">
+<section class="act bg-ink2 dither-host" id="actSound" role="button" tabindex="0" aria-label="Interactive sound. Click or tap anywhere, then move to pan and shape the mix.">
   <canvas class="sound-dither" id="soundDither" aria-hidden="true"></canvas>
   <div class="act-word" aria-hidden="true">Sound</div>
   <div class="sound-spot" id="soundSpot"></div>
@@ -310,7 +318,8 @@ tailwind.config={theme:{extend:{
 </section>
 
 <!-- ACT III — STAGE -->
-<section class="act bg-ink2" id="actStage">
+<section class="act bg-ink2 dither-host" id="actStage">
+  <canvas class="sound-dither" aria-hidden="true"></canvas>
   <div class="act-word" aria-hidden="true">Stage</div>
   <div class="act-in max-w-7xl mx-auto px-5 sm:px-8 w-full grid lg:grid-cols-2 gap-10 items-center">
     <div class="reveal">
@@ -444,6 +453,7 @@ tailwind.config={theme:{extend:{
 <section id="quote" class="relative imm scroll-mt-20" style="background-image:url('assets/cta-bg.jpg')">
   <div class="absolute inset-0" style="background:linear-gradient(to bottom,rgba(6,8,12,.97),rgba(6,8,12,.82) 42%,rgba(6,8,12,.98))"></div>
   <div class="absolute inset-0" style="background:radial-gradient(120% 80% at 50% 38%,transparent,rgba(6,8,12,.55))"></div>
+  <canvas class="sound-dither" aria-hidden="true"></canvas>
   <div class="relative max-w-3xl mx-auto px-5 sm:px-8 py-24 sm:py-32">
     <div class="text-center reveal">
       <p class="eyebrow text-brand text-xs mb-4">Start the build</p>
@@ -614,155 +624,172 @@ tailwind.config={theme:{extend:{
      Domain-warped noise "fluid" -> halftone dots with per-channel RGB fringe, in
      ink/brand-blue/amber. Pointer stirs the fluid; press-and-hold pushes it faster.
      WebGL1 (not WebGPU) so tablets run it; falls back to a Canvas-2D dot field. ---- */
-  var dCan=document.getElementById('soundDither');
-  var dGL=null, dCtx=null;
-  try{ dGL=dCan&&(dCan.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:false})||dCan.getContext('experimental-webgl',{alpha:true})); }catch(e){}
-  if(!dGL&&dCan){ try{ dCtx=dCan.getContext('2d'); }catch(e){} }
-  var dW=0,dH=0,dRaf=null,dBins=null,dOn=false,dStep=16,dDpr=1;
-  var dHold=false,dSpd=1,dLvl=0,dBass=0;
-  var dReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // press-and-hold anywhere in the act = speed
-  sect.addEventListener('pointerdown',function(){dHold=true;});
-  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){sect.addEventListener(ev,function(){dHold=false;});});
-  window.addEventListener('pointerup',function(){dHold=false;});
-  function dAudio(){
-    var lvl=0,bass=0;
-    if(analyser){
-      if(!dBins||dBins.length!==analyser.frequencyBinCount) dBins=new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(dBins);
-      var sum=0,i; for(i=0;i<dBins.length;i++) sum+=dBins[i];
-      lvl=sum/dBins.length/255;
-      var bn=Math.max(1,dBins.length>>3), bsum=0; for(i=0;i<bn;i++) bsum+=dBins[i];
-      bass=bsum/bn/255;
-    }
-    dLvl+=(lvl-dLvl)*0.14; dBass+=(bass-dBass)*0.25;          // smoothed, so the fluid breathes
-    dSpd+=(((dHold?3.4:1)+dLvl*0.8)-dSpd)*0.05;
-  }
-  function dPtr(){
-    var mx=(parseFloat(sect.style.getPropertyValue('--mx'))||50)/100;
-    var my=(parseFloat(sect.style.getPropertyValue('--my'))||50)/100;
-    return [mx,my];
-  }
-  function dSize(){
-    if(!dCan||!sect)return;
-    var r=sect.getBoundingClientRect();
-    dDpr=Math.min(1.5,window.devicePixelRatio||1);
-    dW=Math.max(1,Math.round(r.width)); dH=Math.max(1,Math.round(r.height));
-    dCan.width=Math.round(dW*dDpr); dCan.height=Math.round(dH*dDpr);
-    dCan.style.width=dW+'px'; dCan.style.height=dH+'px';
-    if(dGL) dGL.viewport(0,0,dCan.width,dCan.height);
-    else if(dCtx) dCtx.setTransform(dDpr,0,0,dDpr,0,0);
-    dStep = dW<760 ? 22 : 16;
-  }
-  /* -- WebGL path -- */
-  var dProg=null,dUni={};
-  function dCompile(){
-    var vs='attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
-    var fs=''
-      +'precision highp float;'
-      +'uniform vec2 u_res;uniform float u_t;uniform vec2 u_ptr;'
-      +'uniform float u_lvl;uniform float u_bass;uniform float u_spd;uniform float u_cell;'
-      +'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}'
-      +'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);'
-      +' return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}'
-      +'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p=p*2.03+vec2(19.7);a*=.5;}return v;}'
-      +'float ht(vec2 fc,float v,vec2 off){vec2 g=mod(fc+off,u_cell)-u_cell*.5;'
-      +' float r=u_cell*.48*clamp(v,0.,1.);return smoothstep(r,r-1.4,length(g));}'
-      +'void main(){'
-      +' vec2 uv=gl_FragCoord.xy/u_res;'
-      +' vec2 asp=vec2(u_res.x/u_res.y,1.);'
-      +' vec2 p=uv*asp*3.;'
-      +' vec2 pp=vec2(u_ptr.x,1.-u_ptr.y)*asp*3.;'
-      +' vec2 d=p-pp;float pd=length(d);'
-      +' float stir=exp(-pd*1.5);'
-      +' vec2 swirl=vec2(-d.y,d.x)*stir*1.3;'
-      +' float w1=fbm(p*.85+u_t*vec2(.20,.16)*u_spd+swirl);'
-      +' float w2=fbm(p*1.05-u_t*vec2(.13,.22)*u_spd+w1*2.3+u_bass*1.4);'
-      +' float v=fbm(p*1.25+w2*2.7+swirl*.8+u_t*vec2(.05,-.04)*u_spd);'
-      +' v=smoothstep(.30,.85,v+stir*.30+u_bass*.18);'   // ridges out of darkness, not a wall of light
-      +' v=v*(.38+.95*u_lvl)+stir*.20+u_lvl*.18;'        // music opens the whole room; idle stays quiet
-      +' v=clamp(v,0.,1.);'
-      +' float ox=u_cell*.12;'
-      +' float mr=ht(gl_FragCoord.xy,v,vec2(ox,ox*.4));'
-      +' float mg=ht(gl_FragCoord.xy,v,vec2(0.,-ox*.5));'
-      +' float mb=ht(gl_FragCoord.xy,v,vec2(-ox,ox*.4));'
-      +' vec3 blue=vec3(.180,.545,.941);'
-      +' vec3 light=vec3(.486,.753,1.0);'
-      +' vec3 amber=vec3(.961,.722,.122);'
-      +' vec3 tint=mix(blue,light,smoothstep(.25,.85,v));'
-      +' tint=mix(tint,amber,smoothstep(.72,.94,v)*(.30+.70*u_bass));'
-      +' vec3 col=tint*vec3(mr,mg,mb);'
-      +' float al=max(mr,max(mg,mb));'
-      +' gl_FragColor=vec4(col,al*.90);'
-      +'}';
-    function sh(type,src){var s=dGL.createShader(type);dGL.shaderSource(s,src);dGL.compileShader(s);
-      if(!dGL.getShaderParameter(s,dGL.COMPILE_STATUS)){console.warn('[dither] shader:',dGL.getShaderInfoLog(s));return null;}return s;}
-    var v=sh(dGL.VERTEX_SHADER,vs),f=sh(dGL.FRAGMENT_SHADER,fs);
-    if(!v||!f)return false;
-    dProg=dGL.createProgram();dGL.attachShader(dProg,v);dGL.attachShader(dProg,f);dGL.linkProgram(dProg);
-    if(!dGL.getProgramParameter(dProg,dGL.LINK_STATUS)){console.warn('[dither] link:',dGL.getProgramInfoLog(dProg));dProg=null;return false;}
-    dGL.useProgram(dProg);
-    var buf=dGL.createBuffer();dGL.bindBuffer(dGL.ARRAY_BUFFER,buf);
-    dGL.bufferData(dGL.ARRAY_BUFFER,new Float32Array([-1,-1, 3,-1, -1,3]),dGL.STATIC_DRAW);
-    var loc=dGL.getAttribLocation(dProg,'a');dGL.enableVertexAttribArray(loc);dGL.vertexAttribPointer(loc,2,dGL.FLOAT,false,0,0);
-    ['u_res','u_t','u_ptr','u_lvl','u_bass','u_spd','u_cell'].forEach(function(n){dUni[n]=dGL.getUniformLocation(dProg,n);});
-    dGL.enable(dGL.BLEND);dGL.blendFunc(dGL.SRC_ALPHA,dGL.ONE_MINUS_SRC_ALPHA);
-    dGL.clearColor(0,0,0,0);
-    return true;
-  }
-  function dGlFrame(ts){
-    var t=(ts||0)/1000;
-    dAudio();
-    var p=dPtr();
-    dGL.clear(dGL.COLOR_BUFFER_BIT);
-    dGL.uniform2f(dUni.u_res,dCan.width,dCan.height);
-    dGL.uniform1f(dUni.u_t,t);
-    dGL.uniform2f(dUni.u_ptr,p[0],p[1]);
-    dGL.uniform1f(dUni.u_lvl,dLvl);
-    dGL.uniform1f(dUni.u_bass,dBass);
-    dGL.uniform1f(dUni.u_spd,dSpd);
-    dGL.uniform1f(dUni.u_cell,(dW<760?11:8)*dDpr);
-    dGL.drawArrays(dGL.TRIANGLES,0,3);
-    if(!dReduced) dRaf=requestAnimationFrame(dGlFrame);
-  }
-  /* -- Canvas-2D fallback (no WebGL) -- */
-  function d2dFrame(ts){
-    var t=(ts||0)/1000;
-    dCtx.clearRect(0,0,dW,dH);
-    dAudio();
-    var p=dPtr(), px=p[0]*dW, py=p[1]*dH;
-    var cx=dW/2, cy=dH/2, s=dStep, R=s*0.44;
-    for(var y=s/2;y<dH;y+=s){
-      for(var x=s/2;x<dW;x+=s){
-        var ox=x-cx, oy=y-cy, rc=Math.sqrt(ox*ox+oy*oy);
-        var rings=Math.sin(rc*0.042 - t*2.1 + dBass*7);
-        var wave=0.5+0.5*Math.sin(t*0.9*dSpd + x*0.010 + y*0.013);
-        var dx=x-px, dy=y-py, pd=Math.sqrt(dx*dx+dy*dy);
-        var pointer = pd<400 ? (1-pd/400) : 0;
-        var a = 0.06 + dLvl*0.6*(0.45+0.55*wave) + (rings>0?rings:0)*0.3*(0.25+dLvl) + pointer*pointer*0.5;
-        if(a<0.05) continue; if(a>1) a=1;
-        dCtx.beginPath();
-        dCtx.arc(x,y,R*(0.3+a*0.9),0,6.2832);
-        dCtx.fillStyle = a>0.72 ? 'rgba(245,184,31,'+(a*0.85)+')' : 'rgba(124,192,255,'+(a*0.8)+')';
-        dCtx.fill();
+  // One field system, mounted wherever the page needs to breathe (hero, Sound,
+  // Stage, CTA). Speed accumulates into sim-time so press-and-hold accelerates
+  // smoothly instead of jumping phase (the old u_t*u_spd bug). Only on-screen
+  // instances animate; each holds its own small GL context.
+  function makeDither(host, opts){
+    if(!host) return;
+    opts = opts || {};
+    var can = host.querySelector('canvas.sound-dither');
+    if(!can) return;
+    var gl=null, c2=null;
+    try{ gl = can.getContext('webgl',{alpha:true,antialias:false,premultipliedAlpha:false}) || can.getContext('experimental-webgl',{alpha:true}); }catch(e){}
+    if(!gl){ try{ c2 = can.getContext('2d'); }catch(e){} if(!c2) return; }
+    var W=0,H=0,dpr=1,raf=null,on=false,bins=null,step=16;
+    var hold=false,spd=1,lvl=0,bass=0,px=.5,py=.55,simT=0,lastTs=0;
+    var gain = opts.gain||1;
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    host.addEventListener('pointermove',function(e){
+      var r=host.getBoundingClientRect();
+      px=(e.clientX-r.left)/Math.max(1,r.width); py=(e.clientY-r.top)/Math.max(1,r.height);
+    });
+    // hold = speed. Cleared on ANY pointerup (window-level), never on leave —
+    // dragging outside no longer kills the hold, and iOS long-press callouts
+    // are suppressed via user-select/touch-callout on the host.
+    host.addEventListener('pointerdown',function(){hold=true;});
+    host.addEventListener('pointercancel',function(){hold=false;});
+    window.addEventListener('pointerup',function(){hold=false;});
+    function audioPull(){
+      var an = opts.analyser ? opts.analyser() : null;
+      var l=0,b=0;
+      if(an){
+        if(!bins||bins.length!==an.frequencyBinCount) bins=new Uint8Array(an.frequencyBinCount);
+        an.getByteFrequencyData(bins);
+        var s=0,i; for(i=0;i<bins.length;i++) s+=bins[i];
+        l=s/bins.length/255;
+        var bn=Math.max(1,bins.length>>3), bs=0; for(i=0;i<bn;i++) bs+=bins[i];
+        b=bs/bn/255;
       }
+      lvl+=(l-lvl)*0.14; bass+=(b-bass)*0.25;
+      spd+=(((hold?3.4:1)+lvl*0.8)-spd)*0.12;
     }
-    if(!dReduced) dRaf=requestAnimationFrame(d2dFrame);
+    function size(){
+      var r=host.getBoundingClientRect();
+      dpr=Math.min(1.5,window.devicePixelRatio||1);
+      W=Math.max(1,Math.round(r.width)); H=Math.max(1,Math.round(r.height));
+      can.width=Math.round(W*dpr); can.height=Math.round(H*dpr);
+      can.style.width=W+'px'; can.style.height=H+'px';
+      if(gl) gl.viewport(0,0,can.width,can.height);
+      else c2.setTransform(dpr,0,0,dpr,0,0);
+      step = W<760 ? 22 : 16;
+    }
+    var prog=null,uni={};
+    function compile(){
+      var vs='attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
+      var fs=''
+        +'precision highp float;'
+        +'uniform vec2 u_res;uniform float u_t;uniform vec2 u_ptr;'
+        +'uniform float u_lvl;uniform float u_bass;uniform float u_gain;uniform float u_cell;'
+        +'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}'
+        +'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);'
+        +' return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}'
+        +'float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p=p*2.03+vec2(19.7);a*=.5;}return v;}'
+        +'float ht(vec2 fc,float v,vec2 off){vec2 g=mod(fc+off,u_cell)-u_cell*.5;'
+        +' float r=u_cell*.48*clamp(v,0.,1.);return smoothstep(r,r-1.4,length(g));}'
+        +'void main(){'
+        +' vec2 uv=gl_FragCoord.xy/u_res;'
+        +' vec2 asp=vec2(u_res.x/u_res.y,1.);'
+        +' vec2 p=uv*asp*3.;'
+        +' vec2 pp=vec2(u_ptr.x,1.-u_ptr.y)*asp*3.;'
+        +' vec2 d=p-pp;float pd=length(d);'
+        +' float stir=exp(-pd*1.5);'
+        +' vec2 swirl=vec2(-d.y,d.x)*stir*1.3;'
+        +' float w1=fbm(p*.85+u_t*vec2(.20,.16)+swirl);'
+        +' float w2=fbm(p*1.05-u_t*vec2(.13,.22)+w1*2.3+u_bass*1.4);'
+        +' float v=fbm(p*1.25+w2*2.7+swirl*.8+u_t*vec2(.05,-.04));'
+        +' v=smoothstep(.30,.85,v+stir*.30+u_bass*.18);'
+        +' v=v*(.38+.95*u_lvl)+stir*.20+u_lvl*.18;'
+        +' v=clamp(v*u_gain,0.,1.);'
+        +' float ox=u_cell*.12;'
+        +' float mr=ht(gl_FragCoord.xy,v,vec2(ox,ox*.4));'
+        +' float mg=ht(gl_FragCoord.xy,v,vec2(0.,-ox*.5));'
+        +' float mb=ht(gl_FragCoord.xy,v,vec2(-ox,ox*.4));'
+        +' vec3 blue=vec3(.180,.545,.941);'
+        +' vec3 light=vec3(.486,.753,1.0);'
+        +' vec3 amber=vec3(.961,.722,.122);'
+        +' vec3 tint=mix(blue,light,smoothstep(.25,.85,v));'
+        +' tint=mix(tint,amber,smoothstep(.72,.94,v)*(.30+.70*u_bass));'
+        +' vec3 col=tint*vec3(mr,mg,mb);'
+        +' float al=max(mr,max(mg,mb));'
+        +' gl_FragColor=vec4(col,al*.90);'
+        +'}';
+      function sh(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+        if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){console.warn('[dither] shader:',gl.getShaderInfoLog(s));return null;}return s;}
+      var v=sh(gl.VERTEX_SHADER,vs),f=sh(gl.FRAGMENT_SHADER,fs);
+      if(!v||!f)return false;
+      prog=gl.createProgram();gl.attachShader(prog,v);gl.attachShader(prog,f);gl.linkProgram(prog);
+      if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){console.warn('[dither] link:',gl.getProgramInfoLog(prog));prog=null;return false;}
+      gl.useProgram(prog);
+      var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+      gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1, 3,-1, -1,3]),gl.STATIC_DRAW);
+      var loc=gl.getAttribLocation(prog,'a');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+      ['u_res','u_t','u_ptr','u_lvl','u_bass','u_gain','u_cell'].forEach(function(n){uni[n]=gl.getUniformLocation(prog,n);});
+      gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+      gl.clearColor(0,0,0,0);
+      return true;
+    }
+    function tick(ts){
+      var dt=Math.min(.05,Math.max(0,((ts||0)-lastTs)/1000)); lastTs=ts||0;
+      audioPull();
+      simT+=dt*spd;
+    }
+    function glFrame(ts){
+      tick(ts);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform2f(uni.u_res,can.width,can.height);
+      gl.uniform1f(uni.u_t,simT);
+      gl.uniform2f(uni.u_ptr,px,py);
+      gl.uniform1f(uni.u_lvl,lvl);
+      gl.uniform1f(uni.u_bass,bass);
+      gl.uniform1f(uni.u_gain,gain);
+      gl.uniform1f(uni.u_cell,(W<760?11:8)*dpr);
+      gl.drawArrays(gl.TRIANGLES,0,3);
+      if(!reduced) raf=requestAnimationFrame(glFrame);
+    }
+    function c2Frame(ts){
+      tick(ts);
+      var t=simT;
+      c2.clearRect(0,0,W,H);
+      var qx=px*W, qy=py*H;
+      var cx=W/2, cy=H/2, s=step, R=s*0.44;
+      for(var y=s/2;y<H;y+=s){
+        for(var x=s/2;x<W;x+=s){
+          var ox=x-cx, oy=y-cy, rc=Math.sqrt(ox*ox+oy*oy);
+          var rings=Math.sin(rc*0.042 - t*2.1 + bass*7);
+          var wave=0.5+0.5*Math.sin(t*0.9 + x*0.010 + y*0.013);
+          var dx=x-qx, dy=y-qy, pd=Math.sqrt(dx*dx+dy*dy);
+          var pointer = pd<400 ? (1-pd/400) : 0;
+          var a = (0.06 + lvl*0.6*(0.45+0.55*wave) + (rings>0?rings:0)*0.3*(0.25+lvl) + pointer*pointer*0.5)*gain;
+          if(a<0.05) continue; if(a>1) a=1;
+          c2.beginPath();
+          c2.arc(x,y,R*(0.3+a*0.9),0,6.2832);
+          c2.fillStyle = a>0.72 ? 'rgba(245,184,31,'+(a*0.85)+')' : 'rgba(124,192,255,'+(a*0.8)+')';
+          c2.fill();
+        }
+      }
+      if(!reduced) raf=requestAnimationFrame(c2Frame);
+    }
+    function start(){
+      if(on)return;
+      on=true; size();
+      if(gl&&!prog&&!compile()){ gl=null; try{c2=can.getContext('2d');}catch(e){} if(!c2){on=false;return;} }
+      lastTs=performance.now();
+      raf=requestAnimationFrame(gl?glFrame:c2Frame);
+    }
+    function stop(){
+      on=false; if(raf){cancelAnimationFrame(raf);raf=null;}
+      if(gl){gl.clear(gl.COLOR_BUFFER_BIT);} else if(c2){c2.clearRect(0,0,W,H);}
+    }
+    if('IntersectionObserver' in window){
+      new IntersectionObserver(function(es){es.forEach(function(en){ en.isIntersecting?start():stop(); });},{threshold:0.05}).observe(host);
+      window.addEventListener('resize',function(){ if(on) size(); });
+    }else{ start(); }
   }
-  function dStart(){
-    if(dOn||(!dGL&&!dCtx))return;
-    dOn=true; dSize();
-    if(dGL&&!dProg&&!dCompile()){ dGL=null; try{dCtx=dCan.getContext('2d');}catch(e){} if(!dCtx){dOn=false;return;} }
-    dRaf=requestAnimationFrame(dGL?dGlFrame:d2dFrame);
-  }
-  function dStop(){
-    dOn=false; if(dRaf){cancelAnimationFrame(dRaf);dRaf=null;}
-    if(dGL){dGL.clear(dGL.COLOR_BUFFER_BIT);} else if(dCtx){dCtx.clearRect(0,0,dW,dH);}
-  }
-  if(dCan&&(dGL||dCtx)&&'IntersectionObserver' in window){
-    new IntersectionObserver(function(es){es.forEach(function(en){ en.isIntersecting?dStart():dStop(); });},{threshold:0.05}).observe(sect);
-    window.addEventListener('resize',function(){ if(dOn) dSize(); });
-  }
+  makeDither(sect,{analyser:function(){return analyser;},gain:1});      // Act I — the music drives it
+  makeDither(document.getElementById('top'),{gain:1.12});               // hero — over the film
+  makeDither(document.getElementById('actStage'),{gain:.92});           // Act III — quiet build
+  makeDither(document.getElementById('quote'),{gain:1.0});              // CTA — the finale
 </script>
 
 <!-- ============================================================
